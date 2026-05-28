@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:common/model/file_type.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:localsend_app/gen/strings.g.dart';
 import 'package:localsend_app/model/chat/chat_models.dart';
 import 'package:localsend_app/model/cross_file.dart';
 import 'package:localsend_app/provider/chat/chat_provider.dart';
@@ -11,6 +15,7 @@ import 'package:localsend_app/provider/network/nearby_devices_provider.dart';
 import 'package:localsend_app/util/file_size_helper.dart';
 import 'package:localsend_app/util/native/cross_file_converters.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
+import 'package:localsend_app/util/ui/snackbar.dart';
 import 'package:localsend_app/widget/list_tile/device_list_tile.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
@@ -298,6 +303,8 @@ enum _ChatMenuAction {
   sync,
 }
 
+enum _MessageContextAction { copy }
+
 class _EmptyConversation extends StatelessWidget {
   final bool hasMembers;
   final Future<void> Function() onManageUsers;
@@ -361,6 +368,7 @@ class _MessageBubble extends StatelessWidget {
     final textColor = isMine ? scheme.onPrimaryContainer : scheme.onSurface;
     final crossAlign = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final rowAlign = isMine ? MainAxisAlignment.end : MainAxisAlignment.start;
+    final copyText = _copyTextForMessage(message);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -379,23 +387,42 @@ class _MessageBubble extends StatelessWidget {
             children: [
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: bubbleColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: DefaultTextStyle(
-                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(color: textColor),
-                      child: switch (message.kind) {
-                        ChatMessageKind.text => Text(message.text ?? ''),
-                        ChatMessageKind.attachment when attachment != null => _AttachmentCard(
-                          attachment: attachment,
-                          textColor: textColor,
+                child: GestureDetector(
+                  onSecondaryTapDown: copyText == null
+                      ? null
+                      : (details) => _showCopyMenu(
+                          context: context,
+                          position: details.globalPosition,
+                          value: copyText,
                         ),
-                        _ => const SizedBox.shrink(),
-                      },
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: bubbleColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: DefaultTextStyle(
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge!.copyWith(color: textColor),
+                        child: switch (message.kind) {
+                          ChatMessageKind.text => SelectableText(
+                            message.text ?? '',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyLarge!.copyWith(color: textColor),
+                          ),
+                          ChatMessageKind.attachment when attachment != null => _AttachmentCard(
+                            attachment: attachment,
+                            textColor: textColor,
+                          ),
+                          _ => const SizedBox.shrink(),
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -413,6 +440,17 @@ class _MessageBubble extends StatelessWidget {
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
   }
+
+  String? _copyTextForMessage(ChatMessage message) {
+    switch (message.kind) {
+      case ChatMessageKind.text:
+        final text = message.text;
+        return text == null || text.isEmpty ? null : text;
+      case ChatMessageKind.attachment:
+        final attachment = message.attachment;
+        return attachment == null ? null : _attachmentCopyText(attachment);
+    }
+  }
 }
 
 class _AttachmentCard extends StatelessWidget {
@@ -426,35 +464,45 @@ class _AttachmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => context.ref.notifier(chatProvider).requestAttachmentDownload(context, attachment),
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.all(2),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(_iconForFileType(attachment.fileType), color: textColor),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    attachment.fileName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    attachment.size.asReadableFileSize,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: textColor.withValues(alpha: 0.75)),
-                  ),
-                ],
+    final copyText = _attachmentCopyText(attachment);
+    return GestureDetector(
+      onLongPressStart: (details) => _showCopyMenu(
+        context: context,
+        position: details.globalPosition,
+        value: copyText,
+      ),
+      child: InkWell(
+        onTap: () => context.ref.notifier(chatProvider).requestAttachmentDownload(context, attachment),
+        borderRadius: BorderRadius.circular(6),
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_iconForFileType(attachment.fileType), color: textColor),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      attachment.fileName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      attachment.size.asReadableFileSize,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: textColor.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -475,6 +523,57 @@ class _AttachmentCard extends StatelessWidget {
       case FileType.other:
         return Icons.insert_drive_file_outlined;
     }
+  }
+}
+
+String _attachmentCopyText(ChatAttachment attachment) {
+  return '${attachment.fileName} (${attachment.size.asReadableFileSize})';
+}
+
+void _showCopyMenu({
+  required BuildContext context,
+  required Offset position,
+  required String value,
+}) {
+  unawaited(
+    _showCopyMenuAsync(
+      context: context,
+      position: position,
+      value: value,
+    ),
+  );
+}
+
+Future<void> _showCopyMenuAsync({
+  required BuildContext context,
+  required Offset position,
+  required String value,
+}) async {
+  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  final action = await showMenu<_MessageContextAction>(
+    context: context,
+    position: RelativeRect.fromRect(
+      Rect.fromLTWH(position.dx, position.dy, 0, 0),
+      Offset.zero & overlay.size,
+    ),
+    items: [
+      PopupMenuItem(
+        value: _MessageContextAction.copy,
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.content_copy),
+          title: Text(t.general.copy),
+        ),
+      ),
+    ],
+  );
+  if (action != _MessageContextAction.copy) {
+    return;
+  }
+
+  await Clipboard.setData(ClipboardData(text: value));
+  if (context.mounted && checkPlatformIsDesktop()) {
+    context.showSnackBar(t.general.copiedToClipboard);
   }
 }
 
