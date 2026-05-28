@@ -7,6 +7,7 @@ import 'package:localsend_app/util/file_size_helper.dart';
 import 'package:localsend_app/util/file_type_ext.dart';
 import 'package:localsend_app/util/native/pick_directory_path.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
+import 'package:localsend_app/widget/custom_basic_appbar.dart';
 import 'package:localsend_app/widget/custom_dropdown_button.dart';
 import 'package:localsend_app/widget/custom_icon_button.dart';
 import 'package:localsend_app/widget/dialogs/file_name_input_dialog.dart';
@@ -24,22 +25,21 @@ class ReceiveOptionsPage extends StatelessWidget {
     final ref = context.ref;
     final receiveSession = ref.watch(serverProvider.select((s) => s?.session));
     if (receiveSession == null) {
-      return Scaffold(
-        body: Container(),
-      );
+      return Scaffold(body: Container());
     }
     final selectState = ref.watch(selectedReceivingFilesProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.receiveOptionsPage.title),
-      ),
+      appBar: basicLocalSendAppbar(t.receiveOptionsPage.title),
       body: ResponsiveListView(
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
         children: [
           Row(
             children: [
-              Text(t.receiveOptionsPage.destination, style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                t.receiveOptionsPage.destination,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               if (checkPlatformWithFileSystem())
                 Padding(
                   padding: const EdgeInsets.only(left: 10),
@@ -47,7 +47,9 @@ class ReceiveOptionsPage extends StatelessWidget {
                     onPressed: () async {
                       final directory = await pickDirectoryPath();
                       if (directory != null) {
-                        ref.notifier(serverProvider).setSessionDestinationDir(directory);
+                        ref
+                            .notifier(serverProvider)
+                            .setSessionDestinationDir(directory);
                       }
                     },
                     child: const Icon(Icons.edit),
@@ -56,13 +58,20 @@ class ReceiveOptionsPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 5),
-          Text(checkPlatformWithFileSystem() ? receiveSession.destinationDirectory : t.receiveOptionsPage.appDirectory),
+          Text(
+            checkPlatformWithFileSystem()
+                ? receiveSession.destinationDirectory
+                : t.receiveOptionsPage.appDirectory,
+          ),
           if (checkPlatformWithGallery())
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20),
-                Text(t.receiveOptionsPage.saveToGallery, style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  t.receiveOptionsPage.saveToGallery,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -76,18 +85,26 @@ class ReceiveOptionsPage extends StatelessWidget {
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(minWidth: 80),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
                               child: Text(b ? t.general.on : t.general.off),
                             ),
                           ),
                         );
                       }).toList(),
-                      onChanged: (b) => ref.notifier(serverProvider).setSessionSaveToGallery(b),
+                      onChanged: (b) => ref
+                          .notifier(serverProvider)
+                          .setSessionSaveToGallery(b),
                     ),
-                    if (receiveSession.containsDirectories && !receiveSession.saveToGallery) ...[
+                    if (receiveSession.containsDirectories &&
+                        !receiveSession.saveToGallery) ...[
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(t.receiveOptionsPage.saveToGalleryOff, style: const TextStyle(color: Colors.grey)),
+                        child: Text(
+                          t.receiveOptionsPage.saveToGalleryOff,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
                       ),
                     ],
                   ],
@@ -97,13 +114,19 @@ class ReceiveOptionsPage extends StatelessWidget {
           const SizedBox(height: 20),
           Row(
             children: [
-              Text(t.general.files, style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                t.general.files,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(width: 10),
               Tooltip(
                 message: t.dialogs.quickActions.title,
                 child: CustomIconButton(
                   onPressed: () async {
-                    await showDialog(context: context, builder: (_) => const QuickActionsDialog());
+                    await showDialog(
+                      context: context,
+                      builder: (_) => const QuickActionsDialog(),
+                    );
                   },
                   child: const Icon(Icons.tips_and_updates),
                 ),
@@ -112,7 +135,9 @@ class ReceiveOptionsPage extends StatelessWidget {
               Tooltip(
                 message: t.general.reset,
                 child: CustomIconButton(
-                  onPressed: () => ref.notifier(selectedReceivingFilesProvider).setFiles(vm.files),
+                  onPressed: () => ref
+                      .notifier(selectedReceivingFilesProvider)
+                      .setFiles(vm.files),
                   child: const Icon(Icons.undo),
                 ),
               ),
@@ -143,7 +168,11 @@ class ReceiveOptionsPage extends StatelessWidget {
                           style: TextStyle(
                             color: !selectState.containsKey(file.id)
                                 ? Colors.grey
-                                : (selectState[file.id] == file.fileName ? Theme.of(context).colorScheme.onSecondaryContainer : Colors.orange),
+                                : (selectState[file.id] == file.fileName
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.onSecondaryContainer
+                                      : Colors.orange),
                           ),
                         ),
                       ],
@@ -164,7 +193,9 @@ class ReceiveOptionsPage extends StatelessWidget {
                                   ),
                                 );
                                 if (result != null) {
-                                  ref.notifier(selectedReceivingFilesProvider).rename(file.id, result);
+                                  ref
+                                      .notifier(selectedReceivingFilesProvider)
+                                      .rename(file.id, result);
                                 }
                               },
                         child: const Icon(Icons.edit),
@@ -175,9 +206,13 @@ class ReceiveOptionsPage extends StatelessWidget {
                         checkColor: Theme.of(context).colorScheme.surface,
                         onChanged: (selected) {
                           if (selected == true) {
-                            ref.notifier(selectedReceivingFilesProvider).select(file);
+                            ref
+                                .notifier(selectedReceivingFilesProvider)
+                                .select(file);
                           } else {
-                            ref.notifier(selectedReceivingFilesProvider).unselect(file.id);
+                            ref
+                                .notifier(selectedReceivingFilesProvider)
+                                .unselect(file.id);
                           }
                         },
                       ),

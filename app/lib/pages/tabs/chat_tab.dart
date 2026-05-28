@@ -21,6 +21,7 @@ import 'package:localsend_app/util/native/cross_file_converters.dart';
 import 'package:localsend_app/util/native/open_folder.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
 import 'package:localsend_app/util/ui/snackbar.dart';
+import 'package:localsend_app/widget/custom_basic_appbar.dart';
 import 'package:localsend_app/widget/list_tile/device_list_tile.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -77,12 +78,13 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   static const double _macTrafficLightPadding = 72;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(localSendAppBarHeight);
 
   @override
   Widget build(BuildContext context) {
     final isMacOs = checkPlatform([TargetPlatform.macOS]);
     return AppBar(
+      toolbarHeight: localSendAppBarHeight,
       automaticallyImplyLeading: false,
       scrolledUnderElevation: 0,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -93,11 +95,18 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         if (selectingMessages) ...[
           TextButton.icon(
+            style: compactAppBarButtonStyle(),
             onPressed: messagesEmpty ? null : onSelectAllMessages,
             icon: const Icon(Icons.select_all),
             label: const Text('Select all'),
           ),
           IconButton(
+            constraints: const BoxConstraints.tightFor(
+              width: localSendAppBarHeight,
+              height: localSendAppBarHeight,
+            ),
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.compact,
             tooltip: 'Delete',
             icon: const Icon(Icons.delete_outline),
             onPressed: onDeleteSelectedMessages,
@@ -115,11 +124,22 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           IconButton(
+            constraints: const BoxConstraints.tightFor(
+              width: localSendAppBarHeight,
+              height: localSendAppBarHeight,
+            ),
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.compact,
             tooltip: 'Sync now',
             onPressed: syncing ? null : onSyncNow,
             icon: const Icon(Icons.sync),
           ),
           PopupMenuButton<Object>(
+            constraints: const BoxConstraints.tightFor(
+              width: localSendAppBarHeight,
+              height: localSendAppBarHeight,
+            ),
+            padding: EdgeInsets.zero,
             icon: const Icon(Icons.more_horiz),
             onSelected: (action) async {
               if (action is int) {
@@ -169,7 +189,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         : Text(
             '$onlineMemberCount online',
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: Theme.of(context).textTheme.titleSmall,
           );
 
     if (!isMacOs) {
@@ -178,12 +198,9 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: kToolbarHeight,
+      height: localSendAppBarHeight,
       child: MoveWindow(
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: title,
-        ),
+        child: Align(alignment: Alignment.centerLeft, child: title),
       ),
     );
   }
@@ -194,6 +211,12 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
 
     final closeButton = IconButton(
+      constraints: const BoxConstraints.tightFor(
+        width: localSendAppBarHeight,
+        height: localSendAppBarHeight,
+      ),
+      padding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
       tooltip: 'Close',
       icon: const Icon(Icons.close),
       onPressed: onExitSelection,
@@ -208,7 +231,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         MoveWindow(
           child: const SizedBox(
             width: _macTrafficLightPadding,
-            height: kToolbarHeight,
+            height: localSendAppBarHeight,
           ),
         ),
         closeButton,
@@ -988,10 +1011,15 @@ class _ImageAttachmentCard extends StatelessWidget {
   }
 }
 
-Future<void> _openAttachment(BuildContext context, ChatAttachment attachment) async {
+Future<void> _openAttachment(
+  BuildContext context,
+  ChatAttachment attachment,
+) async {
   final notifier = context.ref.notifier(chatProvider);
   if (attachment.fileType == FileType.image) {
-    final resolvedAttachment = await notifier.resolveAttachmentForPreview(attachment);
+    final resolvedAttachment = await notifier.resolveAttachmentForPreview(
+      attachment,
+    );
     if (resolvedAttachment == null) {
       await notifier.requestAttachmentDownload(attachment);
       return;

@@ -6,6 +6,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
 
+const double localSendAppBarHeight = 24;
+const double _macTrafficLightPadding = 72;
+
+ButtonStyle compactAppBarButtonStyle() {
+  return TextButton.styleFrom(
+    minimumSize: const Size(48, localSendAppBarHeight),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    visualDensity: VisualDensity.compact,
+    padding: const EdgeInsets.symmetric(horizontal: 10),
+  );
+}
+
 class CustomBackButton extends StatelessWidget {
   final Color? color;
 
@@ -15,6 +27,12 @@ class CustomBackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
     return IconButton(
+      constraints: const BoxConstraints.tightFor(
+        width: localSendAppBarHeight,
+        height: localSendAppBarHeight,
+      ),
+      padding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
       icon: Icon(
         isRtl ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded,
         color: color ?? IconTheme.of(context).color,
@@ -27,6 +45,21 @@ class CustomBackButton extends StatelessWidget {
   }
 }
 
+class CustomBackTextButton extends StatelessWidget {
+  const CustomBackTextButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      style: compactAppBarButtonStyle(),
+      onPressed: () async {
+        await Navigator.maybePop(context);
+      },
+      child: const Text('返回'),
+    );
+  }
+}
+
 PreferredSizeWidget basicLocalSendAppbar(
   String title, {
   List<Widget> actions = const [],
@@ -34,21 +67,18 @@ PreferredSizeWidget basicLocalSendAppbar(
   // Keeps the native draggable macOS header while moving navigation to the trailing edge.
   if (checkPlatform([TargetPlatform.macOS])) {
     return PreferredSize(
-      preferredSize: const Size.fromHeight(kToolbarHeight),
+      preferredSize: const Size.fromHeight(localSendAppBarHeight),
       child: ClipRRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: 20.0,
-            sigmaY: 20.0,
-          ),
+          filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
           child: MoveWindow(
             child: Container(
               color: Colors.transparent,
-              height: kToolbarHeight,
+              height: localSendAppBarHeight,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  if (!kIsWeb && Platform.isMacOS) const SizedBox(width: 60),
+                  if (!kIsWeb && Platform.isMacOS) const SizedBox(width: _macTrafficLightPadding),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -58,7 +88,7 @@ PreferredSizeWidget basicLocalSendAppbar(
                           child: Text(
                             title,
                             style: const TextStyle(
-                              fontSize: 100,
+                              fontSize: 15,
                               fontWeight: FontWeight.normal,
                             ),
                           ),
@@ -68,12 +98,8 @@ PreferredSizeWidget basicLocalSendAppbar(
                   ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ...actions,
-                      const CustomBackButton(),
-                    ],
+                    children: [...actions, const CustomBackTextButton()],
                   ),
-                  const SizedBox(width: 60),
                 ],
               ),
             ),
@@ -84,10 +110,13 @@ PreferredSizeWidget basicLocalSendAppbar(
   }
 
   return AppBar(
-    title: Text(title),
-    actions: [
-      ...actions,
-      const CustomBackButton(),
-    ],
+    toolbarHeight: localSendAppBarHeight,
+    automaticallyImplyLeading: false,
+    title: Text(
+      title,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 15),
+    ),
+    actions: [...actions, const CustomBackTextButton()],
   );
 }

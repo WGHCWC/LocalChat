@@ -1,4 +1,5 @@
 .idea
+.worktree/
 
 # Linux AppImage
 /app/AppDir
