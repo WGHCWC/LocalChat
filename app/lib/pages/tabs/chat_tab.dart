@@ -362,102 +362,110 @@ class _ChatTabState extends State<ChatTab> with Refena {
       });
     }
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      appBar: _ChatAppBar(
-        selectingMessages: _selectingMessages,
-        selectedMessageCount: _selectedMessageIds.length,
-        onlineMemberCount: chat.members.where((member) => member.ip != null).length,
-        syncing: chat.syncing,
-        messagesEmpty: chat.messages.isEmpty,
-        shellDestinations: widget.shellDestinations,
-        onExitSelection: _exitMessageSelection,
-        onSelectAllMessages: () => _selectAllMessages(chat.messages),
-        onDeleteSelectedMessages: _selectedMessageIds.isEmpty ? null : _deleteSelectedMessages,
-        onSyncNow: () async => context.ref.notifier(chatProvider).syncOnlineMembers(),
-        onShowMembers: () async {
-          if (!context.mounted) {
-            return;
-          }
-          await showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            showDragHandle: true,
-            builder: (_) => _MemberManagementSheet(
-              key: const ValueKey('chat-member-management-sheet'),
-            ),
-          );
-        },
-      ),
-      body: Column(
-        children: [
-          if (chat.errorMessage != null)
-            Container(
-              width: double.infinity,
-              color: Theme.of(context).colorScheme.errorContainer,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Text(
-                chat.errorMessage!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onErrorContainer,
+    return PopScope(
+      canPop: !_selectingMessages,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _selectingMessages) {
+          _exitMessageSelection();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+        appBar: _ChatAppBar(
+          selectingMessages: _selectingMessages,
+          selectedMessageCount: _selectedMessageIds.length,
+          onlineMemberCount: chat.members.where((member) => member.ip != null).length,
+          syncing: chat.syncing,
+          messagesEmpty: chat.messages.isEmpty,
+          shellDestinations: widget.shellDestinations,
+          onExitSelection: _exitMessageSelection,
+          onSelectAllMessages: () => _selectAllMessages(chat.messages),
+          onDeleteSelectedMessages: _selectedMessageIds.isEmpty ? null : _deleteSelectedMessages,
+          onSyncNow: () async => context.ref.notifier(chatProvider).syncOnlineMembers(),
+          onShowMembers: () async {
+            if (!context.mounted) {
+              return;
+            }
+            await showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: true,
+              builder: (_) => _MemberManagementSheet(
+                key: const ValueKey('chat-member-management-sheet'),
+              ),
+            );
+          },
+        ),
+        body: Column(
+          children: [
+            if (chat.errorMessage != null)
+              Container(
+                width: double.infinity,
+                color: Theme.of(context).colorScheme.errorContainer,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Text(
+                  chat.errorMessage!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onErrorContainer,
+                  ),
                 ),
               ),
-            ),
-          Expanded(
-            child: _DesktopChatDropTarget(
-              onSendFiles: (files) => context.ref.notifier(chatProvider).sendAttachments(files),
-              child: chat.messages.isEmpty
-                  ? _EmptyConversation(
-                      hasMembers: chat.members.isNotEmpty,
-                      onManageUsers: () async {
-                        await showModalBottomSheet<void>(
-                          context: context,
-                          isScrollControlled: true,
-                          showDragHandle: true,
-                          builder: (_) => _MemberManagementSheet(
-                            key: const ValueKey('chat-member-management-sheet'),
-                          ),
-                        );
-                      },
-                    )
-                  : GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: _clearMessageSelection,
-                      child: NotificationListener<ScrollStartNotification>(
-                        onNotification: (_) {
-                          _clearMessageSelection();
-                          return false;
+            Expanded(
+              child: _DesktopChatDropTarget(
+                onSendFiles: (files) => context.ref.notifier(chatProvider).sendAttachments(files),
+                child: chat.messages.isEmpty
+                    ? _EmptyConversation(
+                        hasMembers: chat.members.isNotEmpty,
+                        onManageUsers: () async {
+                          await showModalBottomSheet<void>(
+                            context: context,
+                            isScrollControlled: true,
+                            showDragHandle: true,
+                            builder: (_) => _MemberManagementSheet(
+                              key: const ValueKey('chat-member-management-sheet'),
+                            ),
+                          );
                         },
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
-                          itemCount: chat.messages.length,
-                          itemBuilder: (context, index) {
-                            final message = chat.messages[index];
-                            final isMine = message.senderFingerprint == myFingerprint;
-                            return _MessageBubble(
-                              message: message,
-                              isMine: isMine,
-                              isSelectionMode: _selectingMessages,
-                              isSelected: _selectedMessageIds.contains(
-                                message.id,
-                              ),
-                              onClearSelection: _clearMessageSelection,
-                              onEnterSelection: _startMessageSelection,
-                              onToggleSelection: _toggleMessageSelection,
-                            );
+                      )
+                    : GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: _clearMessageSelection,
+                        child: NotificationListener<ScrollStartNotification>(
+                          onNotification: (_) {
+                            _clearMessageSelection();
+                            return false;
                           },
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
+                            itemCount: chat.messages.length,
+                            itemBuilder: (context, index) {
+                              final message = chat.messages[index];
+                              final isMine = message.senderFingerprint == myFingerprint;
+                              return _MessageBubble(
+                                message: message,
+                                isMine: isMine,
+                                isSelectionMode: _selectingMessages,
+                                isSelected: _selectedMessageIds.contains(
+                                  message.id,
+                                ),
+                                onClearSelection: _clearMessageSelection,
+                                onEnterSelection: _startMessageSelection,
+                                onToggleSelection: _toggleMessageSelection,
+                              );
+                            },
+                          ),
                         ),
                       ),
-                    ),
+              ),
             ),
-          ),
-          _Composer(
-            controller: _controller,
-            onSendText: (text) => context.ref.notifier(chatProvider).sendText(text),
-            onSendFiles: (files) => context.ref.notifier(chatProvider).sendAttachments(files),
-          ),
-        ],
+            _Composer(
+              controller: _controller,
+              onSendText: (text) => context.ref.notifier(chatProvider).sendText(text),
+              onSendFiles: (files) => context.ref.notifier(chatProvider).sendAttachments(files),
+            ),
+          ],
+        ),
       ),
     );
   }
