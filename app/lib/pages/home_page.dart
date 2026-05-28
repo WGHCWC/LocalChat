@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:localsend_app/config/init.dart';
 import 'package:localsend_app/config/theme.dart';
@@ -75,8 +76,10 @@ class _HomePageState extends State<HomePage> with Refena {
   Widget build(BuildContext context) {
     Translations.of(context); // rebuild on locale change
     final vm = context.watch(homePageControllerProvider);
+    final chatOwnsDesktopDrop = !kIsWeb && checkPlatformIsDesktop() && vm.currentTab == HomeTab.chat;
 
     return DropTarget(
+      enable: !chatOwnsDesktopDrop,
       onDragEntered: (_) {
         setState(() {
           _dragAndDropIndicator = true;
