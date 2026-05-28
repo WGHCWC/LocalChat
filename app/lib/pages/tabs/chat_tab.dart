@@ -627,7 +627,8 @@ class _ImageAttachmentCard extends StatelessWidget {
 
   Future<void> _openImage(BuildContext context) async {
     final notifier = context.ref.notifier(chatProvider);
-    if (!await notifier.hasLocalAttachmentFile(attachment)) {
+    final resolvedAttachment = await notifier.resolveAttachmentForPreview(attachment);
+    if (resolvedAttachment == null) {
       await notifier.requestAttachmentDownload(attachment);
       return;
     }
@@ -636,7 +637,7 @@ class _ImageAttachmentCard extends StatelessWidget {
     }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ChatImagePreviewPage(attachment: attachment),
+        builder: (_) => ChatImagePreviewPage(attachment: resolvedAttachment),
       ),
     );
   }
