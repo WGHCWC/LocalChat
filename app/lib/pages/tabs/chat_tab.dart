@@ -26,10 +26,24 @@ import 'package:refena_flutter/refena_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 class ChatTab extends StatefulWidget {
-  const ChatTab({super.key});
+  final List<ChatShellDestination> shellDestinations;
+
+  const ChatTab({this.shellDestinations = const [], super.key});
 
   @override
   State<ChatTab> createState() => _ChatTabState();
+}
+
+class ChatShellDestination {
+  final IconData icon;
+  final String label;
+  final VoidCallback onSelected;
+
+  const ChatShellDestination({
+    required this.icon,
+    required this.label,
+    required this.onSelected,
+  });
 }
 
 class _ChatTabState extends State<ChatTab> with Refena {
@@ -158,18 +172,14 @@ class _ChatTabState extends State<ChatTab> with Refena {
         actions: [
           if (_selectingMessages) ...[
             TextButton.icon(
-              onPressed: chat.messages.isEmpty
-                  ? null
-                  : () => _selectAllMessages(chat.messages),
+              onPressed: chat.messages.isEmpty ? null : () => _selectAllMessages(chat.messages),
               icon: const Icon(Icons.select_all),
               label: const Text('Select all'),
             ),
             IconButton(
               tooltip: 'Delete',
               icon: const Icon(Icons.delete_outline),
-              onPressed: _selectedMessageIds.isEmpty
-                  ? null
-                  : _deleteSelectedMessages,
+              onPressed: _selectedMessageIds.isEmpty ? null : _deleteSelectedMessages,
             ),
           ] else ...[
             if (chat.syncing)
@@ -183,32 +193,35 @@ class _ChatTabState extends State<ChatTab> with Refena {
                   ),
                 ),
               ),
-            PopupMenuButton<_ChatMenuAction>(
+            IconButton(
+              tooltip: 'Sync now',
+              onPressed: chat.syncing ? null : () async => context.ref.notifier(chatProvider).syncOnlineMembers(),
+              icon: const Icon(Icons.sync),
+            ),
+            PopupMenuButton<Object>(
               icon: const Icon(Icons.more_horiz),
               onSelected: (action) async {
-                switch (action) {
-                  case _ChatMenuAction.sync:
-                    await context.ref
-                        .notifier(chatProvider)
-                        .syncOnlineMembers();
-                    break;
-                  case _ChatMenuAction.members:
-                    if (!context.mounted) {
-                      return;
-                    }
-                    await showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      showDragHandle: true,
-                      builder: (_) => _MemberManagementSheet(
-                        key: const ValueKey('chat-member-management-sheet'),
-                      ),
-                    );
-                    break;
+                if (action is int) {
+                  widget.shellDestinations[action].onSelected();
+                  return;
+                }
+
+                if (action == _ChatMenuAction.members) {
+                  if (!context.mounted) {
+                    return;
+                  }
+                  await showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    showDragHandle: true,
+                    builder: (_) => _MemberManagementSheet(
+                      key: const ValueKey('chat-member-management-sheet'),
+                    ),
+                  );
                 }
               },
-              itemBuilder: (context) => const [
-                PopupMenuItem(
+              itemBuilder: (context) => [
+                const PopupMenuItem(
                   value: _ChatMenuAction.members,
                   child: ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -216,14 +229,19 @@ class _ChatTabState extends State<ChatTab> with Refena {
                     title: Text('User management'),
                   ),
                 ),
-                PopupMenuItem(
-                  value: _ChatMenuAction.sync,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.sync),
-                    title: Text('Sync now'),
+                if (widget.shellDestinations.isNotEmpty) const PopupMenuDivider(),
+                for (final (index, destination) in widget.shellDestinations.indexed)
+                  PopupMenuItem(
+                    value: index,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(destination.icon),
+                      title: Text(
+                        destination.label,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
-                ),
               ],
             ),
           ],
@@ -245,8 +263,7 @@ class _ChatTabState extends State<ChatTab> with Refena {
             ),
           Expanded(
             child: _DesktopChatDropTarget(
-              onSendFiles: (files) =>
-                  context.ref.notifier(chatProvider).sendAttachments(files),
+              onSendFiles: (files) => context.ref.notifier(chatProvider).sendAttachments(files),
               child: chat.messages.isEmpty
                   ? _EmptyConversation(
                       hasMembers: chat.members.isNotEmpty,
@@ -275,8 +292,7 @@ class _ChatTabState extends State<ChatTab> with Refena {
                           itemCount: chat.messages.length,
                           itemBuilder: (context, index) {
                             final message = chat.messages[index];
-                            final isMine =
-                                message.senderFingerprint == myFingerprint;
+                            final isMine = message.senderFingerprint == myFingerprint;
                             return _MessageBubble(
                               message: message,
                               isMine: isMine,
@@ -296,10 +312,8 @@ class _ChatTabState extends State<ChatTab> with Refena {
           ),
           _Composer(
             controller: _controller,
-            onSendText: (text) =>
-                context.ref.notifier(chatProvider).sendText(text),
-            onSendFiles: (files) =>
-                context.ref.notifier(chatProvider).sendAttachments(files),
+            onSendText: (text) => context.ref.notifier(chatProvider).sendText(text),
+            onSendFiles: (files) => context.ref.notifier(chatProvider).sendAttachments(files),
           ),
         ],
       ),
@@ -398,18 +412,13 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            _sending
-                                ? Icons.upload_file
-                                : Icons.file_upload_outlined,
+                            _sending ? Icons.upload_file : Icons.file_upload_outlined,
                             color: scheme.onPrimaryContainer,
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            _sending
-                                ? 'Sending files...'
-                                : 'Drop files to send',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(color: scheme.onPrimaryContainer),
+                            _sending ? 'Sending files...' : 'Drop files to send',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: scheme.onPrimaryContainer),
                           ),
                         ],
                       ),
@@ -425,7 +434,7 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
   }
 }
 
-enum _ChatMenuAction { members, sync }
+enum _ChatMenuAction { members }
 
 enum _MessageContextAction { select, copy, share, showInFolder }
 
@@ -458,9 +467,7 @@ class _EmptyConversation extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              hasMembers
-                  ? 'Send a message or share a file from the input bar below.'
-                  : 'Open the top-right menu and manage users first.',
+              hasMembers ? 'Send a message or share a file from the input bar below.' : 'Open the top-right menu and manage users first.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -500,13 +507,9 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final attachment = message.attachment;
     final scheme = Theme.of(context).colorScheme;
-    final bubbleColor = isMine
-        ? scheme.primaryContainer
-        : scheme.surfaceContainerHigh;
+    final bubbleColor = isMine ? scheme.primaryContainer : scheme.surfaceContainerHigh;
     final textColor = isMine ? scheme.onPrimaryContainer : scheme.onSurface;
-    final crossAlign = isMine
-        ? CrossAxisAlignment.end
-        : CrossAxisAlignment.start;
+    final crossAlign = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final rowAlign = isMine ? MainAxisAlignment.end : MainAxisAlignment.start;
     final contextData = _contextDataForMessage(message);
     final checkbox = Checkbox(
@@ -516,9 +519,7 @@ class _MessageBubble extends StatelessWidget {
     final bubble = ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 420),
       child: GestureDetector(
-        onTap: isSelectionMode
-            ? () => onToggleSelection(message.id)
-            : onClearSelection,
+        onTap: isSelectionMode ? () => onToggleSelection(message.id) : onClearSelection,
         onLongPressStart: contextData == null
             ? null
             : (details) => _showCopyMenu(
@@ -544,9 +545,7 @@ class _MessageBubble extends StatelessWidget {
                   )
                 : bubbleColor,
             borderRadius: BorderRadius.circular(8),
-            border: isSelected
-                ? Border.all(color: scheme.secondary, width: 2)
-                : null,
+            border: isSelected ? Border.all(color: scheme.secondary, width: 2) : null,
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -567,26 +566,22 @@ class _MessageBubble extends StatelessWidget {
                     context,
                   ).textTheme.bodyLarge!.copyWith(color: textColor),
                 ),
-                ChatMessageKind.attachment
-                    when attachment != null &&
-                        attachment.fileType == FileType.image =>
-                  _ImageAttachmentCard(
-                    attachment: attachment,
-                    textColor: textColor,
-                    isSelectionMode: isSelectionMode,
-                    onClearSelection: onClearSelection,
-                    onToggleSelection: () => onToggleSelection(message.id),
-                    onEnterSelection: onEnterSelection,
-                  ),
-                ChatMessageKind.attachment when attachment != null =>
-                  _AttachmentCard(
-                    attachment: attachment,
-                    textColor: textColor,
-                    isSelectionMode: isSelectionMode,
-                    onClearSelection: onClearSelection,
-                    onToggleSelection: () => onToggleSelection(message.id),
-                    onEnterSelection: onEnterSelection,
-                  ),
+                ChatMessageKind.attachment when attachment != null && attachment.fileType == FileType.image => _ImageAttachmentCard(
+                  attachment: attachment,
+                  textColor: textColor,
+                  isSelectionMode: isSelectionMode,
+                  onClearSelection: onClearSelection,
+                  onToggleSelection: () => onToggleSelection(message.id),
+                  onEnterSelection: onEnterSelection,
+                ),
+                ChatMessageKind.attachment when attachment != null => _AttachmentCard(
+                  attachment: attachment,
+                  textColor: textColor,
+                  isSelectionMode: isSelectionMode,
+                  onClearSelection: onClearSelection,
+                  onToggleSelection: () => onToggleSelection(message.id),
+                  onEnterSelection: onEnterSelection,
+                ),
                 _ => const SizedBox.shrink(),
               },
             ),
@@ -631,14 +626,10 @@ class _MessageBubble extends StatelessWidget {
     switch (message.kind) {
       case ChatMessageKind.text:
         final text = message.text;
-        return text == null || text.isEmpty
-            ? null
-            : _MessageContextData.text(message.id, text);
+        return text == null || text.isEmpty ? null : _MessageContextData.text(message.id, text);
       case ChatMessageKind.attachment:
         final attachment = message.attachment;
-        return attachment == null
-            ? null
-            : _MessageContextData.attachment(attachment);
+        return attachment == null ? null : _MessageContextData.attachment(attachment);
     }
   }
 }
@@ -884,8 +875,7 @@ class _ImageAttachmentPreview extends StatelessWidget {
     return Image.file(
       file,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) =>
-          const Center(child: Icon(Icons.broken_image_outlined)),
+      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined)),
     );
   }
 }
@@ -1072,9 +1062,7 @@ File? _localAttachmentFileForFolder(_MessageContextData message) {
   }
 
   final localPath = message.attachment?.localPath;
-  if (localPath == null ||
-      localPath.isEmpty ||
-      localPath.startsWith('content://')) {
+  if (localPath == null || localPath.isEmpty || localPath.startsWith('content://')) {
     return null;
   }
 
@@ -1085,9 +1073,7 @@ File? _localAttachmentFileForFolder(_MessageContextData message) {
 Future<void> _copyMessageContext(_MessageContextData message) async {
   final attachment = message.attachment;
   final localPath = attachment?.localPath;
-  if (attachment != null &&
-      localPath != null &&
-      !localPath.startsWith('content://')) {
+  if (attachment != null && localPath != null && !localPath.startsWith('content://')) {
     final file = File(localPath);
     if (file.existsSync()) {
       final copiedFiles = await Pasteboard.writeFiles([localPath]);
@@ -1111,10 +1097,7 @@ Future<void> _copyMessageContext(_MessageContextData message) async {
 Future<void> _shareMessageContext(_MessageContextData message) async {
   final attachment = message.attachment;
   final localPath = attachment?.localPath;
-  if (attachment != null &&
-      localPath != null &&
-      !localPath.startsWith('content://') &&
-      File(localPath).existsSync()) {
+  if (attachment != null && localPath != null && !localPath.startsWith('content://') && File(localPath).existsSync()) {
     try {
       await SharePlus.instance.share(
         ShareParams(
@@ -1229,9 +1212,7 @@ class _MemberManagementSheet extends StatelessWidget {
       chatProvider.select((state) => state.members),
     );
     final nearbyDevicesState = context.watch(nearbyDevicesProvider);
-    final onlineNearbyDevices = nearbyDevicesState.allDevices.values
-        .where((device) => device.ip != null)
-        .toList(growable: false);
+    final onlineNearbyDevices = nearbyDevicesState.allDevices.values.where((device) => device.ip != null).toList(growable: false);
     final chatNotifier = context.ref.notifier(chatProvider);
     final onlineDevices = chatNotifier.onlineNonMemberDevices();
     return SafeArea(
@@ -1284,9 +1265,7 @@ class _MemberManagementSheet extends StatelessWidget {
                         subtitle: Text(member.ip ?? 'Offline'),
                         trailing: IconButton(
                           tooltip: 'Remove',
-                          onPressed: () => context.ref
-                              .notifier(chatProvider)
-                              .removeMember(member.fingerprint),
+                          onPressed: () => context.ref.notifier(chatProvider).removeMember(member.fingerprint),
                           icon: const Icon(Icons.person_remove_outlined),
                         ),
                       );
@@ -1314,9 +1293,7 @@ class _MemberManagementSheet extends StatelessWidget {
                         child: DeviceListTile(
                           device: device,
                           info: 'Tap to add',
-                          onTap: () => context.ref
-                              .notifier(chatProvider)
-                              .addMember(device),
+                          onTap: () => context.ref.notifier(chatProvider).addMember(device),
                         ),
                       );
                     }),
