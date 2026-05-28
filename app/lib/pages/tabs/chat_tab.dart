@@ -26,10 +26,24 @@ import 'package:refena_flutter/refena_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 class ChatTab extends StatefulWidget {
-  const ChatTab({super.key});
+  final List<ChatShellDestination> shellDestinations;
+
+  const ChatTab({this.shellDestinations = const [], super.key});
 
   @override
   State<ChatTab> createState() => _ChatTabState();
+}
+
+class ChatShellDestination {
+  final IconData icon;
+  final String label;
+  final VoidCallback onSelected;
+
+  const ChatShellDestination({
+    required this.icon,
+    required this.label,
+    required this.onSelected,
+  });
 }
 
 class _ChatTabState extends State<ChatTab> with Refena {
@@ -97,30 +111,38 @@ class _ChatTabState extends State<ChatTab> with Refena {
                 ),
               ),
             ),
-          PopupMenuButton<_ChatMenuAction>(
+          IconButton(
+            tooltip: 'Sync now',
+            onPressed: chat.syncing
+                ? null
+                : () async =>
+                      context.ref.notifier(chatProvider).syncOnlineMembers(),
+            icon: const Icon(Icons.sync),
+          ),
+          PopupMenuButton<Object>(
             icon: const Icon(Icons.more_horiz),
             onSelected: (action) async {
-              switch (action) {
-                case _ChatMenuAction.sync:
-                  await context.ref.notifier(chatProvider).syncOnlineMembers();
-                  break;
-                case _ChatMenuAction.members:
-                  if (!context.mounted) {
-                    return;
-                  }
-                  await showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    showDragHandle: true,
-                    builder: (_) => _MemberManagementSheet(
-                      key: const ValueKey('chat-member-management-sheet'),
-                    ),
-                  );
-                  break;
+              if (action is int) {
+                widget.shellDestinations[action].onSelected();
+                return;
+              }
+
+              if (action == _ChatMenuAction.members) {
+                if (!context.mounted) {
+                  return;
+                }
+                await showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  showDragHandle: true,
+                  builder: (_) => _MemberManagementSheet(
+                    key: const ValueKey('chat-member-management-sheet'),
+                  ),
+                );
               }
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
+            itemBuilder: (context) => [
+              const PopupMenuItem(
                 value: _ChatMenuAction.members,
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -128,14 +150,20 @@ class _ChatTabState extends State<ChatTab> with Refena {
                   title: Text('User management'),
                 ),
               ),
-              PopupMenuItem(
-                value: _ChatMenuAction.sync,
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.sync),
-                  title: Text('Sync now'),
+              if (widget.shellDestinations.isNotEmpty) const PopupMenuDivider(),
+              for (final (index, destination)
+                  in widget.shellDestinations.indexed)
+                PopupMenuItem(
+                  value: index,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(destination.icon),
+                    title: Text(
+                      destination.label,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
         ],
@@ -156,7 +184,8 @@ class _ChatTabState extends State<ChatTab> with Refena {
             ),
           Expanded(
             child: _DesktopChatDropTarget(
-              onSendFiles: (files) => context.ref.notifier(chatProvider).sendAttachments(files),
+              onSendFiles: (files) =>
+                  context.ref.notifier(chatProvider).sendAttachments(files),
               child: chat.messages.isEmpty
                   ? _EmptyConversation(
                       hasMembers: chat.members.isNotEmpty,
@@ -185,7 +214,8 @@ class _ChatTabState extends State<ChatTab> with Refena {
                           itemCount: chat.messages.length,
                           itemBuilder: (context, index) {
                             final message = chat.messages[index];
-                            final isMine = message.senderFingerprint == myFingerprint;
+                            final isMine =
+                                message.senderFingerprint == myFingerprint;
                             return _MessageBubble(
                               message: message,
                               isMine: isMine,
@@ -199,8 +229,10 @@ class _ChatTabState extends State<ChatTab> with Refena {
           ),
           _Composer(
             controller: _controller,
-            onSendText: (text) => context.ref.notifier(chatProvider).sendText(text),
-            onSendFiles: (files) => context.ref.notifier(chatProvider).sendAttachments(files),
+            onSendText: (text) =>
+                context.ref.notifier(chatProvider).sendText(text),
+            onSendFiles: (files) =>
+                context.ref.notifier(chatProvider).sendAttachments(files),
           ),
         ],
       ),
@@ -299,15 +331,18 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            _sending ? Icons.upload_file : Icons.file_upload_outlined,
+                            _sending
+                                ? Icons.upload_file
+                                : Icons.file_upload_outlined,
                             color: scheme.onPrimaryContainer,
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            _sending ? 'Sending files...' : 'Drop files to send',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: scheme.onPrimaryContainer,
-                            ),
+                            _sending
+                                ? 'Sending files...'
+                                : 'Drop files to send',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(color: scheme.onPrimaryContainer),
                           ),
                         ],
                       ),
@@ -323,7 +358,7 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
   }
 }
 
-enum _ChatMenuAction { members, sync }
+enum _ChatMenuAction { members }
 
 enum _MessageContextAction { copy, share, showInFolder }
 
@@ -356,7 +391,9 @@ class _EmptyConversation extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              hasMembers ? 'Send a message or share a file from the input bar below.' : 'Open the top-right menu and manage users first.',
+              hasMembers
+                  ? 'Send a message or share a file from the input bar below.'
+                  : 'Open the top-right menu and manage users first.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -388,9 +425,13 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final attachment = message.attachment;
     final scheme = Theme.of(context).colorScheme;
-    final bubbleColor = isMine ? scheme.primaryContainer : scheme.surfaceContainerHigh;
+    final bubbleColor = isMine
+        ? scheme.primaryContainer
+        : scheme.surfaceContainerHigh;
     final textColor = isMine ? scheme.onPrimaryContainer : scheme.onSurface;
-    final crossAlign = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final crossAlign = isMine
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
     final rowAlign = isMine ? MainAxisAlignment.end : MainAxisAlignment.start;
     final contextData = _contextDataForMessage(message);
 
@@ -448,16 +489,20 @@ class _MessageBubble extends StatelessWidget {
                               context,
                             ).textTheme.bodyLarge!.copyWith(color: textColor),
                           ),
-                          ChatMessageKind.attachment when attachment != null && attachment.fileType == FileType.image => _ImageAttachmentCard(
-                            attachment: attachment,
-                            textColor: textColor,
-                            onClearSelection: onClearSelection,
-                          ),
-                          ChatMessageKind.attachment when attachment != null => _AttachmentCard(
-                            attachment: attachment,
-                            textColor: textColor,
-                            onClearSelection: onClearSelection,
-                          ),
+                          ChatMessageKind.attachment
+                              when attachment != null &&
+                                  attachment.fileType == FileType.image =>
+                            _ImageAttachmentCard(
+                              attachment: attachment,
+                              textColor: textColor,
+                              onClearSelection: onClearSelection,
+                            ),
+                          ChatMessageKind.attachment when attachment != null =>
+                            _AttachmentCard(
+                              attachment: attachment,
+                              textColor: textColor,
+                              onClearSelection: onClearSelection,
+                            ),
                           _ => const SizedBox.shrink(),
                         },
                       ),
@@ -483,10 +528,14 @@ class _MessageBubble extends StatelessWidget {
     switch (message.kind) {
       case ChatMessageKind.text:
         final text = message.text;
-        return text == null || text.isEmpty ? null : _MessageContextData.text(text);
+        return text == null || text.isEmpty
+            ? null
+            : _MessageContextData.text(text);
       case ChatMessageKind.attachment:
         final attachment = message.attachment;
-        return attachment == null ? null : _MessageContextData.attachment(attachment);
+        return attachment == null
+            ? null
+            : _MessageContextData.attachment(attachment);
     }
   }
 }
@@ -613,7 +662,11 @@ class _ImageAttachmentCard extends StatelessWidget {
                 child: AspectRatio(
                   aspectRatio: 1.1,
                   child: DecoratedBox(
-                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                    ),
                     child: hasLocalFile
                         ? _ImageAttachmentPreview(
                             attachment: attachment,
@@ -658,7 +711,9 @@ class _ImageAttachmentCard extends StatelessWidget {
 
   Future<void> _openImage(BuildContext context) async {
     final notifier = context.ref.notifier(chatProvider);
-    final resolvedAttachment = await notifier.resolveAttachmentForPreview(attachment);
+    final resolvedAttachment = await notifier.resolveAttachmentForPreview(
+      attachment,
+    );
     if (resolvedAttachment == null) {
       await notifier.requestAttachmentDownload(attachment);
       return;
@@ -692,7 +747,8 @@ class _ImageAttachmentPreview extends StatelessWidget {
     return Image.file(
       file,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined)),
+      errorBuilder: (_, __, ___) =>
+          const Center(child: Icon(Icons.broken_image_outlined)),
     );
   }
 }
@@ -772,11 +828,7 @@ void _showCopyMenu({
   required _MessageContextData message,
 }) {
   unawaited(
-    _showCopyMenuAsync(
-      context: context,
-      position: position,
-      message: message,
-    ),
+    _showCopyMenuAsync(context: context, position: position, message: message),
   );
 }
 
@@ -865,7 +917,9 @@ File? _localAttachmentFileForFolder(_MessageContextData message) {
 Future<void> _copyMessageContext(_MessageContextData message) async {
   final attachment = message.attachment;
   final localPath = attachment?.localPath;
-  if (attachment != null && localPath != null && !localPath.startsWith('content://')) {
+  if (attachment != null &&
+      localPath != null &&
+      !localPath.startsWith('content://')) {
     final file = File(localPath);
     if (file.existsSync()) {
       final copiedFiles = await Pasteboard.writeFiles([localPath]);
@@ -889,7 +943,10 @@ Future<void> _copyMessageContext(_MessageContextData message) async {
 Future<void> _shareMessageContext(_MessageContextData message) async {
   final attachment = message.attachment;
   final localPath = attachment?.localPath;
-  if (attachment != null && localPath != null && !localPath.startsWith('content://') && File(localPath).existsSync()) {
+  if (attachment != null &&
+      localPath != null &&
+      !localPath.startsWith('content://') &&
+      File(localPath).existsSync()) {
     try {
       await SharePlus.instance.share(
         ShareParams(
@@ -906,10 +963,7 @@ Future<void> _shareMessageContext(_MessageContextData message) async {
   }
 
   await SharePlus.instance.share(
-    ShareParams(
-      text: message.copyText,
-      title: attachment?.fileName,
-    ),
+    ShareParams(text: message.copyText, title: attachment?.fileName),
   );
 }
 
@@ -960,10 +1014,7 @@ class _Composer extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        FilledButton(
-          onPressed: _sendCurrentText,
-          child: const Text('Send'),
-        ),
+        FilledButton(onPressed: _sendCurrentText, child: const Text('Send')),
       ],
     );
 
@@ -1010,7 +1061,9 @@ class _MemberManagementSheet extends StatelessWidget {
       chatProvider.select((state) => state.members),
     );
     final nearbyDevicesState = context.watch(nearbyDevicesProvider);
-    final onlineNearbyDevices = nearbyDevicesState.allDevices.values.where((device) => device.ip != null).toList(growable: false);
+    final onlineNearbyDevices = nearbyDevicesState.allDevices.values
+        .where((device) => device.ip != null)
+        .toList(growable: false);
     final chatNotifier = context.ref.notifier(chatProvider);
     final onlineDevices = chatNotifier.onlineNonMemberDevices();
     return SafeArea(
@@ -1063,7 +1116,9 @@ class _MemberManagementSheet extends StatelessWidget {
                         subtitle: Text(member.ip ?? 'Offline'),
                         trailing: IconButton(
                           tooltip: 'Remove',
-                          onPressed: () => context.ref.notifier(chatProvider).removeMember(member.fingerprint),
+                          onPressed: () => context.ref
+                              .notifier(chatProvider)
+                              .removeMember(member.fingerprint),
                           icon: const Icon(Icons.person_remove_outlined),
                         ),
                       );
@@ -1091,7 +1146,9 @@ class _MemberManagementSheet extends StatelessWidget {
                         child: DeviceListTile(
                           device: device,
                           info: 'Tap to add',
-                          onTap: () => context.ref.notifier(chatProvider).addMember(device),
+                          onTap: () => context.ref
+                              .notifier(chatProvider)
+                              .addMember(device),
                         ),
                       );
                     }),

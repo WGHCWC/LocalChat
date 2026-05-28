@@ -14,9 +14,10 @@ class HomePageVm {
   });
 }
 
-final homePageControllerProvider = ReduxProvider<HomePageController, HomePageVm>(
-  (ref) => HomePageController(),
-);
+final homePageControllerProvider =
+    ReduxProvider<HomePageController, HomePageVm>(
+      (ref) => HomePageController(),
+    );
 
 class HomePageController extends ReduxNotifier<HomePageVm> {
   @override
@@ -36,7 +37,9 @@ class ChangeTabAction extends ReduxAction<HomePageController, HomePageVm> {
 
   @override
   HomePageVm reduce() {
-    state.controller.jumpToPage(tab.index);
+    if (state.controller.hasClients) {
+      state.controller.jumpToPage(tab.index);
+    }
     return HomePageVm(
       controller: state.controller,
       currentTab: tab,
