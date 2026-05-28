@@ -55,7 +55,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
   /// Starts a session.
   /// If [background] is true, then the session closes itself on success and no pages will be open
   /// If [background] is false, then this method will open pages by itself and waits for user input to close the session.
-  Future<void> startSession({
+  Future<SessionStatus> startSession({
     required Device target,
     required List<CrossFile> files,
     required bool background,
@@ -181,7 +181,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
                   status: SessionStatus.canceledBySender,
                 ),
               );
-              return;
+              return SessionStatus.canceledBySender;
             }
             break;
           case 403:
@@ -191,7 +191,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
                 status: SessionStatus.declined,
               ),
             );
-            return;
+            return SessionStatus.declined;
           case 409:
             state = state.updateSession(
               sessionId: sessionId,
@@ -199,7 +199,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
                 status: SessionStatus.recipientBusy,
               ),
             );
-            return;
+            return SessionStatus.recipientBusy;
           case 429:
             state = state.updateSession(
               sessionId: sessionId,
@@ -207,7 +207,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
                 status: SessionStatus.tooManyAttempts,
               ),
             );
-            return;
+            return SessionStatus.tooManyAttempts;
           default:
             state = state.updateSession(
               sessionId: sessionId,
@@ -216,7 +216,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
                 errorMessage: e.humanErrorMessage,
               ),
             );
-            return;
+            return SessionStatus.finishedWithErrors;
         }
       } catch (e) {
         state = state.updateSession(
@@ -226,12 +226,12 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
             errorMessage: e.humanErrorMessage,
           ),
         );
-        return;
+        return SessionStatus.finishedWithErrors;
       }
     } while (invalidPin);
 
     if (response == null) {
-      return;
+      return SessionStatus.finishedWithErrors;
     }
 
     final Map<String, String> fileMap;
@@ -257,7 +257,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
             errorMessage: e.humanErrorMessage,
           ),
         );
-        return;
+        return SessionStatus.finishedWithErrors;
       }
     }
 
@@ -276,7 +276,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
       }
 
       closeSession(sessionId);
-      return;
+      return SessionStatus.finished;
     }
 
     final sendingFiles = {
@@ -309,6 +309,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
     );
 
     await _sendLoop(ref, sessionId, target, sendingFiles);
+    return state[sessionId]?.status ?? SessionStatus.finished;
   }
 
   Future<void> _sendLoop(Ref ref, String sessionId, Device target, Map<String, SendingFile> files) async {

@@ -37,6 +37,7 @@ class ReceiveSessionState with ReceiveSessionStateMappable implements SessionSta
   final String destinationDirectory;
   final String cacheDirectory;
   final bool saveToGallery;
+  final bool autoClose;
 
   /// On Android, we need to manually create missing directories.
   /// To improve performance, we cache the created directories so we don't need to check them again.
@@ -56,6 +57,7 @@ class ReceiveSessionState with ReceiveSessionStateMappable implements SessionSta
     required this.destinationDirectory,
     required this.cacheDirectory,
     required this.saveToGallery,
+    required this.autoClose,
     required this.createdDirectories,
     required this.responseHandler,
   });
