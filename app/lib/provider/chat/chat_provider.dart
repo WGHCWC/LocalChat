@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:common/api_route_builder.dart';
 import 'package:common/model/device.dart';
+import 'package:common/model/file_type.dart';
 import 'package:flutter/widgets.dart';
+import 'package:image/image.dart' as img;
 import 'package:localsend_app/model/chat/chat_models.dart';
 import 'package:localsend_app/model/cross_file.dart';
 import 'package:localsend_app/model/persistence/favorite_device.dart';
@@ -112,6 +115,10 @@ class ChatNotifier extends Notifier<ChatState> {
     for (final file in files) {
       final messageId = _uuid.v4();
       final attachmentId = _uuid.v4();
+      Uint8List? thumbnail = file.thumbnail;
+      if (thumbnail == null && file.fileType == FileType.image && file.bytes != null) {
+        thumbnail = await _buildThumbnail(file.bytes!);
+      }
       final message = ChatMessage(
         id: messageId,
         roomId: defaultChatRoomId,
@@ -130,6 +137,9 @@ class ChatNotifier extends Notifier<ChatState> {
           sourceFingerprint: device.fingerprint,
           remoteFileId: attachmentId,
           localPath: file.path,
+          thumbnail: thumbnail,
+          downloadPending: false,
+          downloadError: null,
           createdAt: now,
         ),
       );
@@ -207,6 +217,24 @@ class ChatNotifier extends Notifier<ChatState> {
 
   Future<void> receiveMessage(ChatMessage message) async {
     await initialize();
+    final attachment = message.attachment;
+    if (attachment != null && attachment.fileType == FileType.image) {
+      final localPath = attachment.localPath;
+      if (attachment.thumbnail == null && localPath != null) {
+        final thumbnail = await _buildThumbnailBytesFromFile(localPath);
+        if (thumbnail != null) {
+          _database!.upsertMessage(
+            message.copyWith(
+              attachment: attachment.copyWith(
+                thumbnail: thumbnail,
+              ),
+            ),
+          );
+          _refreshFromDb();
+          return;
+        }
+      }
+    }
     _database!.upsertMessage(message);
     _refreshFromDb();
   }
@@ -238,19 +266,28 @@ class ChatNotifier extends Notifier<ChatState> {
     return _database!.getMessagesNewerThan(sentAt);
   }
 
-  Future<void> requestAttachmentDownload(
-    BuildContext context,
-    ChatAttachment attachment,
-  ) async {
-    if (_isLocalAttachment(attachment)) {
-      await _openLocalAttachment(context, attachment);
+  Future<void> requestAttachmentDownload(ChatAttachment attachment) async {
+    if (await hasLocalAttachmentFile(attachment)) {
       return;
     }
 
     await initialize();
+    _database!.updateAttachmentLocalPath(
+      attachmentId: attachment.id,
+      localPath: null,
+      downloadPending: true,
+      downloadError: null,
+    );
+    _refreshFromDb();
+
     final source = _findOnlineDevice(attachment.sourceFingerprint);
     if (source == null || source.ip == null) {
-      state = state.copyWith(errorMessage: 'Source device is offline.');
+      _database!.updateAttachmentLocalPath(
+        attachmentId: attachment.id,
+        localPath: null,
+        downloadError: 'Source device is offline.',
+      );
+      _refreshFromDb();
       return;
     }
 
@@ -267,14 +304,81 @@ class ChatNotifier extends Notifier<ChatState> {
       state = state.copyWith(errorMessage: null);
     } catch (e, st) {
       _logger.warning('Attachment download request failed', e, st);
-      state = state.copyWith(errorMessage: 'Attachment request failed: $e');
+      _database!.updateAttachmentLocalPath(
+        attachmentId: attachment.id,
+        localPath: null,
+        downloadError: 'Attachment request failed: $e',
+      );
+      _refreshFromDb();
     }
   }
 
-  Future<bool> serveAttachmentDownload(
-    String attachmentId,
-    Device requester,
-  ) async {
+  Future<void> recordReceivedAttachment({
+    required String sourceFingerprint,
+    required String fileName,
+    required int size,
+    required String? localPath,
+    required String? errorMessage,
+  }) async {
+    await initialize();
+    final attachment = _database!.findAttachmentForReceivedFile(
+      sourceFingerprint: sourceFingerprint,
+      fileName: fileName,
+      size: size,
+    );
+    if (attachment == null) {
+      return;
+    }
+    _database!.updateAttachmentLocalPath(
+      attachmentId: attachment.id,
+      localPath: localPath,
+      downloadPending: false,
+      downloadError: errorMessage,
+    );
+    if (localPath != null && attachment.fileType == FileType.image && attachment.thumbnail == null && !localPath.startsWith('content://')) {
+      final thumbnail = await _buildThumbnailBytesFromFile(localPath);
+      if (thumbnail != null) {
+        _database!.updateAttachmentThumbnail(
+          attachmentId: attachment.id,
+          thumbnail: thumbnail,
+        );
+      }
+    }
+    _refreshFromDb();
+  }
+
+  Future<Uint8List?> _buildThumbnailBytesFromFile(String path) async {
+    if (!path.startsWith('content://')) {
+      final file = File(path);
+      if (!file.existsSync()) {
+        return null;
+      }
+      final bytes = await file.readAsBytes();
+      return _buildThumbnail(bytes);
+    }
+    return null;
+  }
+
+  Future<Uint8List?> _buildThumbnail(List<int> bytes) async {
+    try {
+      return await _buildImageThumbnail(bytes);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Uint8List> _buildImageThumbnail(List<int> bytes) async {
+    final image = img.decodeImage(Uint8List.fromList(bytes));
+    if (image == null) {
+      throw Exception('Failed to decode image');
+    }
+    final width = image.width > 240 ? 240 : image.width;
+    final thumbnail = img.copyResize(image, width: width);
+    final png = img.encodePng(thumbnail);
+    return Uint8List.fromList(png);
+  }
+
+  Future<bool> serveAttachmentDownload(String attachmentId, Device requester) async {
     await initialize();
     final attachment = _database!.getAttachment(attachmentId);
     if (attachment == null || attachment.localPath == null) {
@@ -308,14 +412,28 @@ class ChatNotifier extends Notifier<ChatState> {
     return true;
   }
 
-  bool _isLocalAttachment(ChatAttachment attachment) {
-    return attachment.localPath != null || attachment.sourceFingerprint == ref.read(deviceFullInfoProvider).fingerprint;
+  Future<bool> hasLocalAttachmentFile(ChatAttachment attachment) async {
+    await initialize();
+    final localPath = attachment.localPath;
+    if (localPath == null) {
+      return false;
+    }
+    if (localPath.startsWith('content://')) {
+      return true;
+    }
+    final exists = File(localPath).existsSync();
+    if (!exists) {
+      _database!.updateAttachmentLocalPath(
+        attachmentId: attachment.id,
+        localPath: null,
+        downloadError: 'Local file is missing.',
+      );
+      _refreshFromDb();
+    }
+    return exists;
   }
 
-  Future<void> _openLocalAttachment(
-    BuildContext context,
-    ChatAttachment attachment,
-  ) async {
+  Future<void> openLocalAttachment(BuildContext context, ChatAttachment attachment) async {
     final localPath = attachment.localPath;
     if (localPath == null) {
       state = state.copyWith(errorMessage: 'Local file path is unavailable.');

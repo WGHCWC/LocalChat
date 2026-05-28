@@ -24,6 +24,7 @@ import 'package:localsend_app/pages/home_page.dart';
 import 'package:localsend_app/pages/home_page_controller.dart';
 import 'package:localsend_app/pages/progress_page.dart';
 import 'package:localsend_app/pages/receive_page.dart';
+import 'package:localsend_app/provider/chat/chat_provider.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
 import 'package:localsend_app/provider/favorites_provider.dart';
 import 'package:localsend_app/provider/http_provider.dart';
@@ -557,6 +558,16 @@ class ReceiveController {
             ),
           );
 
+      await server.ref
+          .notifier(chatProvider)
+          .recordReceivedAttachment(
+            sourceFingerprint: receiveState.sender.fingerprint,
+            fileName: receivingFile.file.fileName,
+            size: receivingFile.file.size,
+            localPath: filePath,
+            errorMessage: null,
+          );
+
       _logger.info('Saved ${receivingFile.file.fileName}.');
     } catch (e, st) {
       server.setState(
@@ -571,6 +582,15 @@ class ReceiveController {
         ),
       );
       _logger.severe('Failed to save file', e, st);
+      await server.ref
+          .notifier(chatProvider)
+          .recordReceivedAttachment(
+            sourceFingerprint: receiveState.sender.fingerprint,
+            fileName: receivingFile.file.fileName,
+            size: receivingFile.file.size,
+            localPath: null,
+            errorMessage: e.toString(),
+          );
     }
 
     server.ref

@@ -1,6 +1,9 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:common/model/device.dart';
+import 'package:common/model/file_type.dart';
+import 'package:image/image.dart' as img;
 import 'package:localsend_app/model/chat/chat_models.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -65,12 +68,145 @@ class ChatDatabase {
         source_fingerprint TEXT NOT NULL,
         remote_file_id TEXT NOT NULL,
         local_path TEXT,
+        thumbnail BLOB,
         created_at INTEGER NOT NULL,
         FOREIGN KEY(message_id) REFERENCES chat_messages(id) ON DELETE CASCADE
       );
     ''');
+    _addColumnIfMissing('chat_attachments', 'thumbnail', 'BLOB');
+    _addColumnIfMissing('chat_attachments', 'download_pending', 'INTEGER NOT NULL DEFAULT 0');
+    _addColumnIfMissing('chat_attachments', 'download_error', 'TEXT');
+    _backfillImageThumbnails();
     _db.execute('CREATE INDEX IF NOT EXISTS idx_chat_messages_sent_at ON chat_messages(sent_at);');
     _db.execute('CREATE INDEX IF NOT EXISTS idx_chat_attachments_message_id ON chat_attachments(message_id);');
+  }
+
+  void _addColumnIfMissing(String table, String column, String definition) {
+    final columns = _db.select('PRAGMA table_info($table);').map((row) => row['name']).toSet();
+    if (!columns.contains(column)) {
+      _db.execute('ALTER TABLE $table ADD COLUMN $column $definition;');
+    }
+  }
+
+  void updateAttachmentLocalPath({
+    required String attachmentId,
+    required String? localPath,
+    bool downloadPending = false,
+    String? downloadError,
+  }) {
+    _db.execute(
+      '''
+      UPDATE chat_attachments
+      SET local_path = ?, download_pending = ?, download_error = ?
+      WHERE id = ?;
+      ''',
+      [
+        localPath,
+        downloadPending ? 1 : 0,
+        downloadError,
+        attachmentId,
+      ],
+    );
+  }
+
+  void updateAttachmentThumbnail({
+    required String attachmentId,
+    required Uint8List? thumbnail,
+  }) {
+    _db.execute(
+      '''
+      UPDATE chat_attachments
+      SET thumbnail = ?
+      WHERE id = ?;
+      ''',
+      [
+        thumbnail,
+        attachmentId,
+      ],
+    );
+  }
+
+  void _backfillImageThumbnails() {
+    final rows = _db.select(
+      '''
+      SELECT id, local_path
+      FROM chat_attachments
+      WHERE file_type = ?
+        AND thumbnail IS NULL
+        AND local_path IS NOT NULL;
+      ''',
+      [FileType.image.wireName],
+    );
+    for (final row in rows) {
+      final path = row['local_path'] as String?;
+      if (path == null || path.startsWith('content://')) {
+        continue;
+      }
+      final file = File(path);
+      if (!file.existsSync()) {
+        continue;
+      }
+      try {
+        final bytes = file.readAsBytesSync();
+        final thumbnail = _buildThumbnail(bytes);
+        if (thumbnail != null) {
+          _db.execute(
+            'UPDATE chat_attachments SET thumbnail = ? WHERE id = ?;',
+            [thumbnail, row['id']],
+          );
+        }
+      } catch (_) {
+        // Leave the row as-is if thumbnail generation fails.
+      }
+    }
+  }
+
+  Uint8List? _buildThumbnail(List<int> bytes) {
+    final image = img.decodeImage(Uint8List.fromList(bytes));
+    if (image == null) {
+      return null;
+    }
+    final width = image.width > 240 ? 240 : image.width;
+    final thumbnail = img.copyResize(image, width: width);
+    return Uint8List.fromList(img.encodePng(thumbnail));
+  }
+
+  ChatAttachment? findAttachmentForReceivedFile({
+    required String sourceFingerprint,
+    required String fileName,
+    required int size,
+  }) {
+    final rows = _db.select(
+      '''
+      SELECT
+        id AS attachment_id,
+        message_id,
+        file_name,
+        size,
+        file_type,
+        source_fingerprint,
+        remote_file_id,
+        local_path,
+        download_pending,
+        download_error,
+        created_at
+      FROM chat_attachments
+      WHERE source_fingerprint = ?
+        AND file_name = ?
+        AND size = ?
+      ORDER BY created_at DESC
+      LIMIT 1;
+      ''',
+      [
+        sourceFingerprint,
+        fileName,
+        size,
+      ],
+    );
+    if (rows.isEmpty) {
+      return null;
+    }
+    return _attachmentFromRow(rows.first);
   }
 
   List<ChatMember> getMembers() {
@@ -136,6 +272,9 @@ class ChatDatabase {
         a.source_fingerprint,
         a.remote_file_id,
         a.local_path,
+        a.thumbnail,
+        a.download_pending,
+        a.download_error,
         a.created_at
       FROM chat_messages m
       LEFT JOIN chat_attachments a ON a.message_id = m.id
@@ -166,6 +305,9 @@ class ChatDatabase {
         a.source_fingerprint,
         a.remote_file_id,
         a.local_path,
+        a.thumbnail,
+        a.download_pending,
+        a.download_error,
         a.created_at
       FROM chat_messages m
       LEFT JOIN chat_attachments a ON a.message_id = m.id
@@ -194,6 +336,9 @@ class ChatDatabase {
         source_fingerprint,
         remote_file_id,
         local_path,
+        thumbnail,
+        download_pending,
+        download_error,
         created_at
       FROM chat_attachments
       WHERE id = ?;
@@ -230,8 +375,8 @@ class ChatDatabase {
       _db.execute(
         '''
         INSERT OR IGNORE INTO chat_attachments (
-          id, message_id, file_name, size, file_type, source_fingerprint, remote_file_id, local_path, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+          id, message_id, file_name, size, file_type, source_fingerprint, remote_file_id, local_path, thumbnail, download_pending, download_error, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         ''',
         [
           attachment.id,
@@ -242,6 +387,9 @@ class ChatDatabase {
           attachment.sourceFingerprint,
           attachment.remoteFileId,
           attachment.localPath,
+          attachment.thumbnail,
+          attachment.downloadPending ? 1 : 0,
+          attachment.downloadError,
           attachment.createdAt,
         ],
       );
@@ -291,6 +439,9 @@ class ChatDatabase {
       sourceFingerprint: row['source_fingerprint'] as String,
       remoteFileId: row['remote_file_id'] as String,
       localPath: row['local_path'] as String?,
+      thumbnail: row['thumbnail'] as Uint8List?,
+      downloadPending: _asInt(row['download_pending'] ?? 0) == 1,
+      downloadError: row['download_error'] as String?,
       createdAt: _asInt(row['created_at']),
     );
   }
