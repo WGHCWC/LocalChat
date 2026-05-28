@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:localsend_app/config/init.dart';
 import 'package:localsend_app/config/theme.dart';
 import 'package:localsend_app/gen/strings.g.dart';
+import 'package:localsend_app/pages/download_manager_page.dart';
 import 'package:localsend_app/pages/home_page_controller.dart';
 import 'package:localsend_app/pages/tabs/chat_tab.dart';
 import 'package:localsend_app/pages/tabs/receive_tab.dart';
@@ -20,6 +21,7 @@ import 'package:refena_flutter/refena_flutter.dart';
 
 enum HomeTab {
   receive(Icons.wifi),
+  downloads(Icons.download),
   send(Icons.send),
   chat(Icons.chat),
   settings(Icons.settings);
@@ -32,6 +34,8 @@ enum HomeTab {
     switch (this) {
       case HomeTab.receive:
         return t.receiveTab.title;
+      case HomeTab.downloads:
+        return 'Downloads';
       case HomeTab.send:
         return t.sendTab.title;
       case HomeTab.chat:
@@ -49,11 +53,7 @@ class HomePage extends StatefulWidget {
   /// because the first init clears the cache
   final bool appStart;
 
-  const HomePage({
-    required this.initialTab,
-    required this.appStart,
-    super.key,
-  });
+  const HomePage({required this.initialTab, required this.appStart, super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -98,12 +98,7 @@ class _HomePageState extends State<HomePage> with Refena {
           // user dropped one or more files
           await ref
               .redux(selectedSendingFilesProvider)
-              .dispatchAsync(
-                AddFilesAction(
-                  files: event.files,
-                  converter: CrossFileConverters.convertXFile,
-                ),
-              );
+              .dispatchAsync(AddFilesAction(files: event.files, converter: CrossFileConverters.convertXFile));
         }
         vm.changeTab(HomeTab.send);
       },
@@ -136,25 +131,14 @@ class _HomePageState extends State<HomePage> with Refena {
                                 ],
                               )
                             : checkPlatform([TargetPlatform.macOS])
-                            ? SizedBox(
-                                height: 20,
-                              )
+                            ? SizedBox(height: 20)
                             : null,
                         destinations: HomeTab.values.map((tab) {
-                          return NavigationRailDestination(
-                            icon: Icon(tab.icon),
-                            label: Text(tab.label),
-                          );
+                          return NavigationRailDestination(icon: Icon(tab.icon), label: Text(tab.label));
                         }).toList(),
                       ),
                       // makes the top draggable
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: 40,
-                        child: MoveWindow(),
-                      ),
+                      Positioned(top: 0, left: 0, right: 0, height: 40, child: MoveWindow()),
                     ],
                   ),
                 Expanded(
@@ -165,6 +149,7 @@ class _HomePageState extends State<HomePage> with Refena {
                         physics: const NeverScrollableScrollPhysics(),
                         children: const [
                           SafeArea(child: ReceiveTab()),
+                          SafeArea(child: DownloadManagerPage()),
                           SafeArea(child: SendTab()),
                           SafeArea(child: ChatTab()),
                           SettingsTab(),
@@ -173,9 +158,7 @@ class _HomePageState extends State<HomePage> with Refena {
                       if (_dragAndDropIndicator)
                         Container(
                           width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).scaffoldBackgroundColor,
-                          ),
+                          decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [

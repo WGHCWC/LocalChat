@@ -47,10 +47,7 @@ class ChatNotifier extends Notifier<ChatState> {
     }
 
     _database ??= await ChatDatabase.open();
-    _client ??= createRhttpClient(
-      const Duration(seconds: 10),
-      ref.read(securityProvider),
-    );
+    _client ??= createRhttpClient(const Duration(seconds: 10), ref.read(securityProvider));
     _refreshFromDb();
     state = state.copyWith(initialized: true);
   }
@@ -200,13 +197,7 @@ class ChatNotifier extends Notifier<ChatState> {
       final devices = membersByIp.values
           .where((member) => member.https == https)
           .map((member) {
-            return FavoriteDevice(
-              id: member.fingerprint,
-              fingerprint: member.fingerprint,
-              ip: member.ip!,
-              port: member.port,
-              alias: member.alias,
-            );
+            return FavoriteDevice(id: member.fingerprint, fingerprint: member.fingerprint, ip: member.ip!, port: member.port, alias: member.alias);
           })
           .toList(growable: false);
       if (devices.isNotEmpty) {
@@ -242,9 +233,7 @@ class ChatNotifier extends Notifier<ChatState> {
   Future<void> handleIncomingNotification(Device sender) async {
     await initialize();
     if (!_isChatMember(sender.fingerprint)) {
-      _logger.fine(
-        'Ignoring chat notification from non-member ${sender.alias}',
-      );
+      _logger.fine('Ignoring chat notification from non-member ${sender.alias}');
       return;
     }
 
@@ -253,11 +242,7 @@ class ChatNotifier extends Notifier<ChatState> {
       await _syncAndRecord(sender, _database!.getMaxSentAt());
       _refreshFromDb();
     } catch (e, st) {
-      _logger.info(
-        'Could not sync chat after notification from ${sender.alias}',
-        e,
-        st,
-      );
+      _logger.info('Could not sync chat after notification from ${sender.alias}', e, st);
     }
   }
 
@@ -279,9 +264,10 @@ class ChatNotifier extends Notifier<ChatState> {
       downloadError: null,
     );
     _refreshFromDb();
+    await refreshOnlineMembers();
 
     final source = _findOnlineDevice(attachment.sourceFingerprint);
-    if (source == null || source.ip == null) {
+    if (source == null || !_isUsableIp(source.ip)) {
       _database!.updateAttachmentLocalPath(
         attachmentId: attachment.id,
         localPath: null,
@@ -294,13 +280,7 @@ class ChatNotifier extends Notifier<ChatState> {
     final requester = ref.read(deviceFullInfoProvider);
     final url = ApiRoute.chatAttachment.target(source);
     try {
-      await _client!.post(
-        url,
-        body: HttpBody.json({
-          'attachmentId': attachment.id,
-          'requester': _deviceToJson(requester),
-        }),
-      );
+      await _client!.post(url, body: HttpBody.json({'attachmentId': attachment.remoteFileId, 'requester': _deviceToJson(requester)}));
       state = state.copyWith(errorMessage: null);
     } catch (e, st) {
       _logger.warning('Attachment download request failed', e, st);
@@ -443,10 +423,7 @@ class ChatNotifier extends Notifier<ChatState> {
     final file = File(localPath);
 
     if (checkPlatformIsDesktop() && !localPath.startsWith('content://') && file.existsSync()) {
-      await openFolder(
-        folderPath: file.parent.path,
-        fileName: localPath.fileName,
-      );
+      await openFolder(folderPath: file.parent.path, fileName: localPath.fileName);
     } else {
       await openFile(context, attachment.fileType, localPath);
     }
@@ -456,11 +433,7 @@ class ChatNotifier extends Notifier<ChatState> {
   Future<void> _syncDevice(Device device, int sinceSentAt) async {
     final response = await _client!.post(
       ApiRoute.chatSync.target(device),
-      body: HttpBody.json({
-        'roomId': defaultChatRoomId,
-        'sinceSentAt': sinceSentAt,
-        'sender': _deviceToJson(ref.read(deviceFullInfoProvider)),
-      }),
+      body: HttpBody.json({'roomId': defaultChatRoomId, 'sinceSentAt': sinceSentAt, 'sender': _deviceToJson(ref.read(deviceFullInfoProvider))}),
     );
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final rawMessages = body['messages'];
@@ -471,9 +444,7 @@ class ChatNotifier extends Notifier<ChatState> {
       if (raw is Map<String, dynamic>) {
         _database!.upsertMessage(ChatMessage.fromJson(raw));
       } else if (raw is Map) {
-        _database!.upsertMessage(
-          ChatMessage.fromJson(Map<String, dynamic>.from(raw)),
-        );
+        _database!.upsertMessage(ChatMessage.fromJson(Map<String, dynamic>.from(raw)));
       }
     }
   }
@@ -487,38 +458,26 @@ class ChatNotifier extends Notifier<ChatState> {
       }
 
       try {
-        await _client!.post(
-          ApiRoute.chatNotify.target(device),
-          body: HttpBody.json({'sender': _deviceToJson(sender)}),
-        );
+        await _client!.post(ApiRoute.chatNotify.target(device), body: HttpBody.json({'sender': _deviceToJson(sender)}));
       } catch (e, st) {
-        _logger.info(
-          'Could not notify ${device.alias} about chat updates',
-          e,
-          st,
-        );
+        _logger.info('Could not notify ${device.alias} about chat updates', e, st);
       }
     }
   }
 
   Future<void> _syncAndRecord(Device device, int sinceSentAt) async {
     await _syncDevice(device, sinceSentAt);
-    _database!.updateMemberLastSync(
-      device.fingerprint,
-      DateTime.now().toUtc().millisecondsSinceEpoch,
-    );
+    _database!.updateMemberLastSync(device.fingerprint, DateTime.now().toUtc().millisecondsSinceEpoch);
   }
 
   bool _isChatMember(String fingerprint) {
-    return _database!.getMembers().any(
-      (member) => member.fingerprint == fingerprint,
-    );
+    return _database!.getMembers().any((member) => member.fingerprint == fingerprint);
   }
 
   Device? _findOnlineDevice(String fingerprint) {
     final devices = ref.read(nearbyDevicesProvider).allDevices.values;
     for (final device in devices) {
-      if (device.fingerprint == fingerprint && device.ip != null) {
+      if (device.fingerprint == fingerprint && _isUsableIp(device.ip)) {
         return device;
       }
     }
@@ -530,11 +489,7 @@ class ChatNotifier extends Notifier<ChatState> {
     if (db == null) {
       return;
     }
-    state = state.copyWith(
-      members: db.getMembers(),
-      messages: db.getMessages(),
-      errorMessage: null,
-    );
+    state = state.copyWith(members: db.getMembers(), messages: db.getMessages(), errorMessage: null);
   }
 
   bool isMemberOnline(String fingerprint) {
@@ -555,9 +510,7 @@ class ChatNotifier extends Notifier<ChatState> {
       }
       devices.add(device);
     }
-    devices.sort(
-      (a, b) => a.alias.toLowerCase().compareTo(b.alias.toLowerCase()),
-    );
+    devices.sort((a, b) => a.alias.toLowerCase().compareTo(b.alias.toLowerCase()));
     return devices;
   }
 }
@@ -575,21 +528,27 @@ Map<String, dynamic> _deviceToJson(Device device) {
   };
 }
 
-Device deviceFromChatJson(Map<String, dynamic> json, {String? fallbackIp}) {
+Device deviceFromChatJson(Map<String, dynamic> json, {String? fallbackIp, bool preferFallbackIp = false}) {
+  final jsonIp = json['ip'] as String?;
   return Device(
     signalingId: null,
-    ip: json['ip'] as String? ?? fallbackIp,
+    ip: preferFallbackIp && _isUsableIp(fallbackIp)
+        ? fallbackIp
+        : _isUsableIp(jsonIp)
+        ? jsonIp
+        : fallbackIp,
     version: json['version'] as String? ?? '2.0',
     port: (json['port'] as num).toInt(),
     https: json['https'] as bool? ?? false,
     fingerprint: json['fingerprint'] as String,
     alias: json['alias'] as String,
     deviceModel: json['deviceModel'] as String?,
-    deviceType: DeviceType.values.firstWhere(
-      (type) => type.name == json['deviceType'],
-      orElse: () => DeviceType.desktop,
-    ),
+    deviceType: DeviceType.values.firstWhere((type) => type.name == json['deviceType'], orElse: () => DeviceType.desktop),
     download: false,
     discoveryMethods: const {},
   );
+}
+
+bool _isUsableIp(String? ip) {
+  return ip != null && ip.isNotEmpty && ip != '-';
 }
