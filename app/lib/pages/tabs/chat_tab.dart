@@ -49,7 +49,9 @@ class _ChatTabState extends State<ChatTab> with Refena {
   @override
   Widget build(BuildContext context) {
     final chat = context.watch(chatProvider);
-    final myFingerprint = context.watch(deviceFullInfoProvider.select((device) => device.fingerprint));
+    final myFingerprint = context.watch(
+      deviceFullInfoProvider.select((device) => device.fingerprint),
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -137,7 +139,9 @@ class _ChatTabState extends State<ChatTab> with Refena {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Text(
                 chat.errorMessage!,
-                style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
               ),
             ),
           Expanded(
@@ -164,10 +168,7 @@ class _ChatTabState extends State<ChatTab> with Refena {
                       itemBuilder: (context, index) {
                         final message = chat.messages[index];
                         final isMine = message.senderFingerprint == myFingerprint;
-                        return _MessageBubble(
-                          message: message,
-                          isMine: isMine,
-                        );
+                        return _MessageBubble(message: message, isMine: isMine);
                       },
                     ),
             ),
@@ -257,10 +258,7 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: scheme.surfaceContainerHighest.withValues(alpha: 0.88),
-                  border: Border.all(
-                    color: scheme.primary,
-                    width: 2,
-                  ),
+                  border: Border.all(color: scheme.primary, width: 2),
                 ),
                 child: Center(
                   child: DecoratedBox(
@@ -269,7 +267,10 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 14,
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -280,9 +281,7 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
                           const SizedBox(width: 10),
                           Text(
                             _sending ? 'Sending files...' : 'Drop files to send',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: scheme.onPrimaryContainer,
-                                ),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: scheme.onPrimaryContainer),
                           ),
                         ],
                       ),
@@ -298,10 +297,7 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
   }
 }
 
-enum _ChatMenuAction {
-  members,
-  sync,
-}
+enum _ChatMenuAction { members, sync }
 
 enum _MessageContextAction { copy }
 
@@ -355,10 +351,7 @@ class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final bool isMine;
 
-  const _MessageBubble({
-    required this.message,
-    required this.isMine,
-  });
+  const _MessageBubble({required this.message, required this.isMine});
 
   @override
   Widget build(BuildContext context) {
@@ -457,10 +450,7 @@ class _AttachmentCard extends StatelessWidget {
   final ChatAttachment attachment;
   final Color textColor;
 
-  const _AttachmentCard({
-    required this.attachment,
-    required this.textColor,
-  });
+  const _AttachmentCard({required this.attachment, required this.textColor});
 
   @override
   Widget build(BuildContext context) {
@@ -536,11 +526,7 @@ void _showCopyMenu({
   required String value,
 }) {
   unawaited(
-    _showCopyMenuAsync(
-      context: context,
-      position: position,
-      value: value,
-    ),
+    _showCopyMenuAsync(context: context, position: position, value: value),
   );
 }
 
@@ -619,9 +605,7 @@ class _Composer extends StatelessWidget {
                 minLines: 1,
                 maxLines: 5,
                 textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(
-                  hintText: 'Message',
-                ),
+                decoration: const InputDecoration(hintText: 'Message'),
               ),
             ),
             const SizedBox(width: 8),
@@ -645,9 +629,13 @@ class _MemberManagementSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final members = context.watch(chatProvider.select((state) => state.members));
-    final nearbyDevices = context.watch(nearbyDevicesProvider).allDevices.values.where((device) => device.ip != null).toList(growable: false);
-    final memberFingerprints = members.map((member) => member.fingerprint).toSet();
+    final members = context.watch(
+      chatProvider.select((state) => state.members),
+    );
+    final nearbyDevicesState = context.watch(nearbyDevicesProvider);
+    final onlineNearbyDevices = nearbyDevicesState.allDevices.values.where((device) => device.ip != null).toList(growable: false);
+    final chatNotifier = context.ref.notifier(chatProvider);
+    final onlineDevices = chatNotifier.onlineNonMemberDevices();
     return SafeArea(
       child: FractionallySizedBox(
         heightFactor: 0.88,
@@ -657,7 +645,10 @@ class _MemberManagementSheet extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Row(
                 children: [
-                  Text('User management', style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    'User management',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -670,7 +661,10 @@ class _MemberManagementSheet extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                 children: [
-                  Text('Members', style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    'Members',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   const SizedBox(height: 8),
                   if (members.isEmpty)
                     const ListTile(
@@ -679,9 +673,15 @@ class _MemberManagementSheet extends StatelessWidget {
                     )
                   else
                     ...members.map((member) {
+                      final isOnline = chatNotifier.isMemberOnline(
+                        member.fingerprint,
+                      );
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                        leading: _StatusAvatar(
+                          icon: Icons.person_outline,
+                          online: isOnline,
+                        ),
                         title: Text(member.alias),
                         subtitle: Text(member.ip ?? 'Offline'),
                         trailing: IconButton(
@@ -692,22 +692,29 @@ class _MemberManagementSheet extends StatelessWidget {
                       );
                     }),
                   const SizedBox(height: 18),
-                  Text('Online devices', style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    'Online devices',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   const SizedBox(height: 8),
-                  if (nearbyDevices.isEmpty)
+                  if (onlineNearbyDevices.isEmpty)
                     const ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text('No LAN devices discovered'),
                     )
+                  else if (onlineDevices.isEmpty)
+                    const ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('No online devices available to add'),
+                    )
                   else
-                    ...nearbyDevices.map((device) {
-                      final added = memberFingerprints.contains(device.fingerprint);
+                    ...onlineDevices.map((device) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: DeviceListTile(
                           device: device,
-                          info: added ? 'Already added' : 'Tap to add',
-                          onTap: added ? null : () => context.ref.notifier(chatProvider).addMember(device),
+                          info: 'Tap to add',
+                          onTap: () => context.ref.notifier(chatProvider).addMember(device),
                         ),
                       );
                     }),
@@ -717,6 +724,40 @@ class _MemberManagementSheet extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StatusAvatar extends StatelessWidget {
+  final IconData icon;
+  final bool online;
+
+  const _StatusAvatar({required this.icon, required this.online});
+
+  @override
+  Widget build(BuildContext context) {
+    final dotColor = online ? Colors.green : Colors.grey;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        CircleAvatar(child: Icon(icon)),
+        Positioned(
+          right: -1,
+          bottom: -1,
+          child: Container(
+            width: 11,
+            height: 11,
+            decoration: BoxDecoration(
+              color: dotColor,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Theme.of(context).colorScheme.surface,
+                width: 2,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

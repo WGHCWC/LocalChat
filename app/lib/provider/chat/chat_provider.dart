@@ -44,21 +44,34 @@ class ChatNotifier extends Notifier<ChatState> {
     }
 
     _database ??= await ChatDatabase.open();
-    _client ??= createRhttpClient(const Duration(seconds: 10), ref.read(securityProvider));
+    _client ??= createRhttpClient(
+      const Duration(seconds: 10),
+      ref.read(securityProvider),
+    );
     _refreshFromDb();
     state = state.copyWith(initialized: true);
   }
 
   Future<void> addMember(Device device) async {
     await initialize();
+    if (device.ip == null || device.fingerprint == ref.read(deviceFullInfoProvider).fingerprint || _isChatMember(device.fingerprint)) {
+      _refreshFromDb();
+      return;
+    }
     _database!.upsertMember(ChatMember.fromDevice(device));
     _refreshFromDb();
+    await refreshOnlineMembers();
   }
 
   Future<void> removeMember(String fingerprint) async {
     await initialize();
+    if (fingerprint == ref.read(deviceFullInfoProvider).fingerprint || !_isChatMember(fingerprint)) {
+      _refreshFromDb();
+      return;
+    }
     _database!.deleteMember(fingerprint);
     _refreshFromDb();
+    await refreshOnlineMembers();
   }
 
   Future<void> sendText(String text) async {
@@ -201,7 +214,9 @@ class ChatNotifier extends Notifier<ChatState> {
   Future<void> handleIncomingNotification(Device sender) async {
     await initialize();
     if (!_isChatMember(sender.fingerprint)) {
-      _logger.fine('Ignoring chat notification from non-member ${sender.alias}');
+      _logger.fine(
+        'Ignoring chat notification from non-member ${sender.alias}',
+      );
       return;
     }
 
@@ -210,7 +225,11 @@ class ChatNotifier extends Notifier<ChatState> {
       await _syncAndRecord(sender, _database!.getMaxSentAt());
       _refreshFromDb();
     } catch (e, st) {
-      _logger.info('Could not sync chat after notification from ${sender.alias}', e, st);
+      _logger.info(
+        'Could not sync chat after notification from ${sender.alias}',
+        e,
+        st,
+      );
     }
   }
 
@@ -219,7 +238,10 @@ class ChatNotifier extends Notifier<ChatState> {
     return _database!.getMessagesNewerThan(sentAt);
   }
 
-  Future<void> requestAttachmentDownload(BuildContext context, ChatAttachment attachment) async {
+  Future<void> requestAttachmentDownload(
+    BuildContext context,
+    ChatAttachment attachment,
+  ) async {
     if (_isLocalAttachment(attachment)) {
       await _openLocalAttachment(context, attachment);
       return;
@@ -249,7 +271,10 @@ class ChatNotifier extends Notifier<ChatState> {
     }
   }
 
-  Future<bool> serveAttachmentDownload(String attachmentId, Device requester) async {
+  Future<bool> serveAttachmentDownload(
+    String attachmentId,
+    Device requester,
+  ) async {
     await initialize();
     final attachment = _database!.getAttachment(attachmentId);
     if (attachment == null || attachment.localPath == null) {
@@ -287,7 +312,10 @@ class ChatNotifier extends Notifier<ChatState> {
     return attachment.localPath != null || attachment.sourceFingerprint == ref.read(deviceFullInfoProvider).fingerprint;
   }
 
-  Future<void> _openLocalAttachment(BuildContext context, ChatAttachment attachment) async {
+  Future<void> _openLocalAttachment(
+    BuildContext context,
+    ChatAttachment attachment,
+  ) async {
     final localPath = attachment.localPath;
     if (localPath == null) {
       state = state.copyWith(errorMessage: 'Local file path is unavailable.');
@@ -325,7 +353,9 @@ class ChatNotifier extends Notifier<ChatState> {
       if (raw is Map<String, dynamic>) {
         _database!.upsertMessage(ChatMessage.fromJson(raw));
       } else if (raw is Map) {
-        _database!.upsertMessage(ChatMessage.fromJson(Map<String, dynamic>.from(raw)));
+        _database!.upsertMessage(
+          ChatMessage.fromJson(Map<String, dynamic>.from(raw)),
+        );
       }
     }
   }
@@ -341,23 +371,30 @@ class ChatNotifier extends Notifier<ChatState> {
       try {
         await _client!.post(
           ApiRoute.chatNotify.target(device),
-          body: HttpBody.json({
-            'sender': _deviceToJson(sender),
-          }),
+          body: HttpBody.json({'sender': _deviceToJson(sender)}),
         );
       } catch (e, st) {
-        _logger.info('Could not notify ${device.alias} about chat updates', e, st);
+        _logger.info(
+          'Could not notify ${device.alias} about chat updates',
+          e,
+          st,
+        );
       }
     }
   }
 
   Future<void> _syncAndRecord(Device device, int sinceSentAt) async {
     await _syncDevice(device, sinceSentAt);
-    _database!.updateMemberLastSync(device.fingerprint, DateTime.now().toUtc().millisecondsSinceEpoch);
+    _database!.updateMemberLastSync(
+      device.fingerprint,
+      DateTime.now().toUtc().millisecondsSinceEpoch,
+    );
   }
 
   bool _isChatMember(String fingerprint) {
-    return _database!.getMembers().any((member) => member.fingerprint == fingerprint);
+    return _database!.getMembers().any(
+      (member) => member.fingerprint == fingerprint,
+    );
   }
 
   Device? _findOnlineDevice(String fingerprint) {
@@ -380,6 +417,30 @@ class ChatNotifier extends Notifier<ChatState> {
       messages: db.getMessages(),
       errorMessage: null,
     );
+  }
+
+  bool isMemberOnline(String fingerprint) {
+    final device = _findOnlineDevice(fingerprint);
+    return device?.ip != null;
+  }
+
+  List<Device> onlineNonMemberDevices() {
+    final memberFingerprints = _database?.getMembers().map((member) => member.fingerprint).toSet() ?? {};
+    final seenFingerprints = <String>{};
+    final devices = <Device>[];
+    for (final device in ref.read(nearbyDevicesProvider).allDevices.values) {
+      if (device.ip == null || device.fingerprint == ref.read(deviceFullInfoProvider).fingerprint) {
+        continue;
+      }
+      if (memberFingerprints.contains(device.fingerprint) || !seenFingerprints.add(device.fingerprint)) {
+        continue;
+      }
+      devices.add(device);
+    }
+    devices.sort(
+      (a, b) => a.alias.toLowerCase().compareTo(b.alias.toLowerCase()),
+    );
+    return devices;
   }
 }
 
