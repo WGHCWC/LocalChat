@@ -12,6 +12,7 @@ import 'package:localsend_app/model/chat/chat_models.dart';
 import 'package:localsend_app/model/cross_file.dart';
 import 'package:localsend_app/model/persistence/favorite_device.dart';
 import 'package:localsend_app/model/persistence/receive_history_entry.dart';
+import 'package:localsend_app/provider/chat/chat_attachment_file.dart';
 import 'package:localsend_app/provider/chat/chat_database.dart';
 import 'package:localsend_app/provider/chat/chat_sync.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
@@ -247,7 +248,7 @@ class ChatNotifier extends Notifier<ChatState> {
       if (attachment == null) {
         continue;
       }
-      if (_hasUsableLocalPath(attachment.localPath)) {
+      if (hasUsableLocalAttachmentPath(attachment.localPath)) {
         continue;
       }
 
@@ -285,7 +286,7 @@ class ChatNotifier extends Notifier<ChatState> {
         continue;
       }
       final path = entry.path;
-      if (_hasUsableLocalPath(path)) {
+      if (hasUsableLocalAttachmentPath(path)) {
         return path;
       }
     }
@@ -408,7 +409,7 @@ class ChatNotifier extends Notifier<ChatState> {
 
   Future<String?> _ensureThumbnailPath(String sourcePath, String attachmentId) async {
     final existingPath = _database!.getAttachment(attachmentId)?.thumbnailPath;
-    if (_hasUsableLocalPath(existingPath)) {
+    if (hasUsableLocalAttachmentPath(existingPath)) {
       return existingPath;
     }
     final thumbnailDir = Directory(p.join((await getApplicationSupportDirectory()).path, 'localsend', '.chat-thumbnails'));
@@ -522,8 +523,19 @@ class ChatNotifier extends Notifier<ChatState> {
 
   Future<bool> hasLocalAttachmentFile(ChatAttachment attachment) async {
     await initialize();
-    final resolvedAttachment = await resolveAttachmentForPreview(attachment);
-    return resolvedAttachment != null;
+    final current = _database!.getAttachment(attachment.id) ?? attachment;
+    if (hasUsableLocalAttachmentPath(current.localPath)) {
+      return true;
+    }
+    if (current.localPath != null && current.localPath!.isNotEmpty) {
+      _database!.updateAttachmentLocalPath(
+        attachmentId: current.id,
+        localPath: null,
+        downloadError: 'Local file is missing.',
+      );
+      _refreshFromDb();
+    }
+    return false;
   }
 
   Future<ChatAttachment?> resolveAttachmentForPreview(
@@ -537,7 +549,7 @@ class ChatNotifier extends Notifier<ChatState> {
           current,
           ref.read(persistenceProvider).getReceiveHistory().where((entry) => entry.path != null).toList(growable: false),
         );
-    if (!_hasUsableLocalPath(localPath)) {
+    if (!hasUsableLocalAttachmentPath(localPath)) {
       if (current.localPath != null && current.localPath!.isNotEmpty) {
         _database!.updateAttachmentLocalPath(
           attachmentId: current.id,
@@ -563,16 +575,6 @@ class ChatNotifier extends Notifier<ChatState> {
     _refreshFromDb();
 
     return _database!.getAttachment(current.id);
-  }
-
-  bool _hasUsableLocalPath(String? localPath) {
-    if (localPath == null) {
-      return false;
-    }
-    if (localPath.startsWith('content://')) {
-      return true;
-    }
-    return File(localPath).existsSync();
   }
 
   bool consumePendingAttachmentDownload({
