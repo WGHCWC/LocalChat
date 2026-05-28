@@ -13,19 +13,20 @@ class FileInfoDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(t.dialogs.fileInfo.title),
-      content: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
         child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
+          scrollDirection: Axis.vertical,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Table(
+                defaultVerticalAlignment: TableCellVerticalAlignment.top,
                 columnWidths: const {
                   0: IntrinsicColumnWidth(),
-                  1: IntrinsicColumnWidth(),
-                  2: IntrinsicColumnWidth(),
+                  1: FixedColumnWidth(10),
+                  2: FlexColumnWidth(),
                 },
                 children: [
                   if (!entry.isMessage) ...[
@@ -40,7 +41,11 @@ class FileInfoDialog extends StatelessWidget {
                       children: [
                         Text(t.dialogs.fileInfo.path),
                         const SizedBox(width: 10),
-                        SelectableText(entry.savedToGallery ? t.progressPage.savedToGallery : (entry.path ?? '')),
+                        SelectableText(
+                          entry.savedToGallery
+                              ? t.progressPage.savedToGallery
+                              : (entry.path ?? ''),
+                        ),
                       ],
                     ),
                   ],
