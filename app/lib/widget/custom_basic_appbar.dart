@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
 
+const double localSendAppBarHeight = 35;
+
 class CustomBackButton extends StatelessWidget {
   final Color? color;
 
@@ -34,7 +36,7 @@ PreferredSizeWidget basicLocalSendAppbar(
   // Keeps the native draggable macOS header while moving navigation to the trailing edge.
   if (checkPlatform([TargetPlatform.macOS])) {
     return PreferredSize(
-      preferredSize: const Size.fromHeight(kToolbarHeight),
+      preferredSize: const Size.fromHeight(localSendAppBarHeight),
       child: ClipRRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(
@@ -44,7 +46,7 @@ PreferredSizeWidget basicLocalSendAppbar(
           child: MoveWindow(
             child: Container(
               color: Colors.transparent,
-              height: kToolbarHeight,
+              height: localSendAppBarHeight,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -84,6 +86,7 @@ PreferredSizeWidget basicLocalSendAppbar(
   }
 
   return AppBar(
+    toolbarHeight: localSendAppBarHeight,
     title: Text(title),
     actions: [
       ...actions,

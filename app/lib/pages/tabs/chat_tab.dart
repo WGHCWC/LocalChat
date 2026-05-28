@@ -21,6 +21,7 @@ import 'package:localsend_app/util/native/cross_file_converters.dart';
 import 'package:localsend_app/util/native/open_folder.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
 import 'package:localsend_app/util/ui/snackbar.dart';
+import 'package:localsend_app/widget/custom_basic_appbar.dart';
 import 'package:localsend_app/widget/list_tile/device_list_tile.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -77,7 +78,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   static const double _macTrafficLightPadding = 72;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(localSendAppBarHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +91,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
       leadingWidth: isMacOs ? _macTrafficLightPadding + (selectingMessages ? 48 : 0) : null,
       leading: _buildLeading(isMacOs),
       title: _buildTitle(context, isMacOs),
+      toolbarHeight: localSendAppBarHeight,
       actions: [
         if (selectingMessages) ...[
           TextButton.icon(
@@ -178,7 +180,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: kToolbarHeight,
+      height: localSendAppBarHeight,
       child: MoveWindow(
         child: Align(
           alignment: Alignment.centerLeft,
@@ -208,7 +210,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         MoveWindow(
           child: const SizedBox(
             width: _macTrafficLightPadding,
-            height: kToolbarHeight,
+            height: localSendAppBarHeight,
           ),
         ),
         closeButton,
@@ -733,33 +735,34 @@ class _MessageBubble extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: crossAlign,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Text(
-              '${message.senderAlias}  ${_formatTime(message.sentAt)}',
-              style: Theme.of(context).textTheme.bodySmall,
+          if (isSelectionMode)
+            SizedBox(
+              width: 48,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: checkbox,
+              ),
             ),
-          ),
-          Row(
-            children: [
-              if (isSelectionMode)
-                SizedBox(
-                  width: 48,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: checkbox,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: crossAlign,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    '${message.senderAlias}  ${_formatTime(message.sentAt)}',
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
-              Expanded(
-                child: Align(
+                Align(
                   alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
                   child: bubble,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
