@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:common/model/file_type.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
@@ -46,11 +47,193 @@ class ChatShellDestination {
   });
 }
 
+class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final bool selectingMessages;
+  final int selectedMessageCount;
+  final int memberCount;
+  final bool syncing;
+  final bool messagesEmpty;
+  final List<ChatShellDestination> shellDestinations;
+  final VoidCallback onExitSelection;
+  final VoidCallback onSelectAllMessages;
+  final Future<void> Function()? onDeleteSelectedMessages;
+  final Future<void> Function() onSyncNow;
+  final Future<void> Function() onShowMembers;
+
+  const _ChatAppBar({
+    required this.selectingMessages,
+    required this.selectedMessageCount,
+    required this.memberCount,
+    required this.syncing,
+    required this.messagesEmpty,
+    required this.shellDestinations,
+    required this.onExitSelection,
+    required this.onSelectAllMessages,
+    required this.onDeleteSelectedMessages,
+    required this.onSyncNow,
+    required this.onShowMembers,
+  });
+
+  static const double _macTrafficLightPadding = 72;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    final isMacOs = checkPlatform([TargetPlatform.macOS]);
+    return AppBar(
+      automaticallyImplyLeading: false,
+      scrolledUnderElevation: 0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      titleSpacing: 12,
+      leadingWidth: isMacOs ? _macTrafficLightPadding + (selectingMessages ? 48 : 0) : null,
+      leading: _buildLeading(isMacOs),
+      title: _buildTitle(context, isMacOs),
+      actions: [
+        if (selectingMessages) ...[
+          TextButton.icon(
+            onPressed: messagesEmpty ? null : onSelectAllMessages,
+            icon: const Icon(Icons.select_all),
+            label: const Text('Select all'),
+          ),
+          IconButton(
+            tooltip: 'Delete',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: onDeleteSelectedMessages,
+          ),
+        ] else ...[
+          if (syncing)
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+          IconButton(
+            tooltip: 'Sync now',
+            onPressed: syncing ? null : onSyncNow,
+            icon: const Icon(Icons.sync),
+          ),
+          PopupMenuButton<Object>(
+            icon: const Icon(Icons.more_horiz),
+            onSelected: (action) async {
+              if (action is int) {
+                shellDestinations[action].onSelected();
+                return;
+              }
+
+              if (action == _ChatMenuAction.members) {
+                await onShowMembers();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: _ChatMenuAction.members,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.group),
+                  title: Text('User management'),
+                ),
+              ),
+              if (shellDestinations.isNotEmpty) const PopupMenuDivider(),
+              for (final (index, destination) in shellDestinations.indexed)
+                PopupMenuItem(
+                  value: index,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(destination.icon),
+                    title: Text(
+                      destination.label,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTitle(BuildContext context, bool isMacOs) {
+    final title = selectingMessages
+        ? Text(
+            '$selectedMessageCount selected',
+            overflow: TextOverflow.ellipsis,
+          )
+        : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Chatroom', overflow: TextOverflow.ellipsis),
+              Text(
+                '$memberCount members',
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          );
+
+    if (!isMacOs) {
+      return title;
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      height: kToolbarHeight,
+      child: MoveWindow(
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: title,
+        ),
+      ),
+    );
+  }
+
+  Widget? _buildLeading(bool isMacOs) {
+    if (!selectingMessages) {
+      return isMacOs ? MoveWindow(child: const SizedBox.expand()) : null;
+    }
+
+    final closeButton = IconButton(
+      tooltip: 'Close',
+      icon: const Icon(Icons.close),
+      onPressed: onExitSelection,
+    );
+
+    if (!isMacOs) {
+      return closeButton;
+    }
+
+    return Row(
+      children: [
+        MoveWindow(
+          child: const SizedBox(
+            width: _macTrafficLightPadding,
+            height: kToolbarHeight,
+          ),
+        ),
+        closeButton,
+      ],
+    );
+  }
+}
+
 class _ChatTabState extends State<ChatTab> with Refena {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   final Set<String> _selectedMessageIds = {};
   bool _selectingMessages = false;
+  String? _lastRenderedMessageId;
+  int _lastRenderedMessageCount = 0;
+  bool _hasAutoScrolledInitialMessages = false;
+
+  static const double _bottomAutoScrollThreshold = 96;
 
   @override
   void initState() {
@@ -122,6 +305,24 @@ class _ChatTabState extends State<ChatTab> with Refena {
     _exitMessageSelection();
   }
 
+  bool _isNearMessageListBottom() {
+    if (!_scrollController.hasClients) {
+      return true;
+    }
+
+    final position = _scrollController.position;
+    return position.maxScrollExtent - position.pixels <= _bottomAutoScrollThreshold;
+  }
+
+  void _scrollMessagesToBottom() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+
+    final position = _scrollController.position;
+    _scrollController.jumpTo(position.maxScrollExtent);
+  }
+
   @override
   Widget build(BuildContext context) {
     final chat = context.watch(chatProvider);
@@ -129,123 +330,71 @@ class _ChatTabState extends State<ChatTab> with Refena {
       deviceFullInfoProvider.select((device) => device.fingerprint),
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-      }
-      if (_selectingMessages) {
-        final currentIds = chat.messages.map((message) => message.id).toSet();
-        final staleIds = _selectedMessageIds.difference(currentIds);
-        if (staleIds.isNotEmpty) {
+    final currentMessageCount = chat.messages.length;
+    final currentLastMessageId = chat.messages.isEmpty ? null : chat.messages.last.id;
+    final isInitialMessageLoad = currentLastMessageId != null && !_hasAutoScrolledInitialMessages;
+    final hasNewTrailingMessage =
+        currentLastMessageId != null &&
+        _lastRenderedMessageId != null &&
+        currentMessageCount > _lastRenderedMessageCount &&
+        currentLastMessageId != _lastRenderedMessageId;
+    final shouldAutoScroll = isInitialMessageLoad || (hasNewTrailingMessage && _isNearMessageListBottom());
+    final staleSelectedIds = _selectingMessages
+        ? _selectedMessageIds.difference(
+            chat.messages.map((message) => message.id).toSet(),
+          )
+        : const <String>{};
+
+    _lastRenderedMessageId = currentLastMessageId;
+    _lastRenderedMessageCount = currentMessageCount;
+    if (currentLastMessageId == null) {
+      _hasAutoScrolledInitialMessages = false;
+    } else if (isInitialMessageLoad) {
+      _hasAutoScrolledInitialMessages = true;
+    }
+
+    if (shouldAutoScroll || staleSelectedIds.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        if (shouldAutoScroll) {
+          _scrollMessagesToBottom();
+        }
+        if (staleSelectedIds.isNotEmpty) {
           setState(() {
-            _selectedMessageIds.removeAll(staleIds);
+            _selectedMessageIds.removeAll(staleSelectedIds);
           });
         }
-      }
-    });
+      });
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        titleSpacing: 12,
-        leading: _selectingMessages
-            ? IconButton(
-                tooltip: 'Close',
-                icon: const Icon(Icons.close),
-                onPressed: _exitMessageSelection,
-              )
-            : null,
-        title: _selectingMessages
-            ? Text('${_selectedMessageIds.length} selected')
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Chatroom'),
-                  Text(
-                    '${chat.members.length} members',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-        actions: [
-          if (_selectingMessages) ...[
-            TextButton.icon(
-              onPressed: chat.messages.isEmpty ? null : () => _selectAllMessages(chat.messages),
-              icon: const Icon(Icons.select_all),
-              label: const Text('Select all'),
+      appBar: _ChatAppBar(
+        selectingMessages: _selectingMessages,
+        selectedMessageCount: _selectedMessageIds.length,
+        memberCount: chat.members.length,
+        syncing: chat.syncing,
+        messagesEmpty: chat.messages.isEmpty,
+        shellDestinations: widget.shellDestinations,
+        onExitSelection: _exitMessageSelection,
+        onSelectAllMessages: () => _selectAllMessages(chat.messages),
+        onDeleteSelectedMessages: _selectedMessageIds.isEmpty ? null : _deleteSelectedMessages,
+        onSyncNow: () async => context.ref.notifier(chatProvider).syncOnlineMembers(),
+        onShowMembers: () async {
+          if (!context.mounted) {
+            return;
+          }
+          await showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            showDragHandle: true,
+            builder: (_) => _MemberManagementSheet(
+              key: const ValueKey('chat-member-management-sheet'),
             ),
-            IconButton(
-              tooltip: 'Delete',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _selectedMessageIds.isEmpty ? null : _deleteSelectedMessages,
-            ),
-          ] else ...[
-            if (chat.syncing)
-              const Padding(
-                padding: EdgeInsets.only(right: 8),
-                child: Center(
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-              ),
-            IconButton(
-              tooltip: 'Sync now',
-              onPressed: chat.syncing ? null : () async => context.ref.notifier(chatProvider).syncOnlineMembers(),
-              icon: const Icon(Icons.sync),
-            ),
-            PopupMenuButton<Object>(
-              icon: const Icon(Icons.more_horiz),
-              onSelected: (action) async {
-                if (action is int) {
-                  widget.shellDestinations[action].onSelected();
-                  return;
-                }
-
-                if (action == _ChatMenuAction.members) {
-                  if (!context.mounted) {
-                    return;
-                  }
-                  await showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    showDragHandle: true,
-                    builder: (_) => _MemberManagementSheet(
-                      key: const ValueKey('chat-member-management-sheet'),
-                    ),
-                  );
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: _ChatMenuAction.members,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.group),
-                    title: Text('User management'),
-                  ),
-                ),
-                if (widget.shellDestinations.isNotEmpty) const PopupMenuDivider(),
-                for (final (index, destination) in widget.shellDestinations.indexed)
-                  PopupMenuItem(
-                    value: index,
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(destination.icon),
-                      title: Text(
-                        destination.label,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ],
+          );
+        },
       ),
       body: Column(
         children: [
@@ -511,7 +660,6 @@ class _MessageBubble extends StatelessWidget {
     final bubbleColor = isMine ? scheme.primaryContainer : scheme.surfaceContainerHigh;
     final textColor = isMine ? scheme.onPrimaryContainer : scheme.onSurface;
     final crossAlign = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    final rowAlign = isMine ? MainAxisAlignment.end : MainAxisAlignment.start;
     final contextData = _contextDataForMessage(message);
     final checkbox = Checkbox(
       value: isSelected,
@@ -605,11 +753,21 @@ class _MessageBubble extends StatelessWidget {
             ),
           ),
           Row(
-            mainAxisAlignment: rowAlign,
             children: [
-              if (isSelectionMode && !isMine) checkbox,
-              bubble,
-              if (isSelectionMode && isMine) checkbox,
+              if (isSelectionMode)
+                SizedBox(
+                  width: 48,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: checkbox,
+                  ),
+                ),
+              Expanded(
+                child: Align(
+                  alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+                  child: bubble,
+                ),
+              ),
             ],
           ),
         ],
@@ -790,7 +948,7 @@ class _ImageAttachmentCard extends StatelessWidget {
         },
         borderRadius: BorderRadius.circular(6),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 160, maxWidth: 280),
+          constraints: const BoxConstraints(maxWidth: 280),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
