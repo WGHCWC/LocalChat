@@ -14,8 +14,10 @@ import 'package:localsend_app/pages/chat_image_preview_page.dart';
 import 'package:localsend_app/provider/chat/chat_provider.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
 import 'package:localsend_app/provider/network/nearby_devices_provider.dart';
+import 'package:localsend_app/util/file_path_helper.dart';
 import 'package:localsend_app/util/file_size_helper.dart';
 import 'package:localsend_app/util/native/cross_file_converters.dart';
+import 'package:localsend_app/util/native/open_folder.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
 import 'package:localsend_app/util/ui/snackbar.dart';
 import 'package:localsend_app/widget/list_tile/device_list_tile.dart';
@@ -323,7 +325,7 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
 
 enum _ChatMenuAction { members, sync }
 
-enum _MessageContextAction { copy, share }
+enum _MessageContextAction { copy, share, showInFolder }
 
 class _EmptyConversation extends StatelessWidget {
   final bool hasMembers;
@@ -783,6 +785,7 @@ Future<void> _showCopyMenuAsync({
   required _MessageContextData message,
 }) async {
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  final showInFolderFile = _localAttachmentFileForFolder(message);
   final action = await showMenu<_MessageContextAction>(
     context: context,
     position: RelativeRect.fromRect(
@@ -806,6 +809,15 @@ Future<void> _showCopyMenuAsync({
           title: Text('Share'),
         ),
       ),
+      if (showInFolderFile != null)
+        const PopupMenuItem(
+          value: _MessageContextAction.showInFolder,
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.folder_open),
+            title: Text('Show in folder'),
+          ),
+        ),
     ],
   );
 
@@ -819,9 +831,34 @@ Future<void> _showCopyMenuAsync({
     case _MessageContextAction.share:
       await _shareMessageContext(message);
       break;
+    case _MessageContextAction.showInFolder:
+      if (showInFolderFile == null) {
+        return;
+      }
+      await openFolder(
+        folderPath: showInFolderFile.parent.path,
+        fileName: showInFolderFile.path.fileName,
+      );
+      break;
     case null:
       break;
   }
+}
+
+File? _localAttachmentFileForFolder(_MessageContextData message) {
+  if (!checkPlatformIsDesktop()) {
+    return null;
+  }
+
+  final localPath = message.attachment?.localPath;
+  if (localPath == null ||
+      localPath.isEmpty ||
+      localPath.startsWith('content://')) {
+    return null;
+  }
+
+  final file = File(localPath);
+  return file.existsSync() ? file : null;
 }
 
 Future<void> _copyMessageContext(_MessageContextData message) async {
