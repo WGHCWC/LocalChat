@@ -295,9 +295,11 @@ class ChatNotifier extends Notifier<ChatState> {
       return;
     }
 
-    if (checkPlatform([TargetPlatform.windows, TargetPlatform.linux, TargetPlatform.macOS])) {
+    final file = File(localPath);
+
+    if (checkPlatformIsDesktop() && !localPath.startsWith('content://') && file.existsSync()) {
       await openFolder(
-        folderPath: File(localPath).parent.path,
+        folderPath: file.parent.path,
         fileName: localPath.fileName,
       );
     } else {
