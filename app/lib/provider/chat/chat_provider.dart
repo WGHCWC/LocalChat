@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:common/api_route_builder.dart';
 import 'package:common/model/device.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:localsend_app/model/chat/chat_models.dart';
 import 'package:localsend_app/model/cross_file.dart';
@@ -221,12 +220,12 @@ class ChatNotifier extends Notifier<ChatState> {
   }
 
   Future<void> requestAttachmentDownload(BuildContext context, ChatAttachment attachment) async {
-    await initialize();
     if (_isLocalAttachment(attachment)) {
       await _openLocalAttachment(context, attachment);
       return;
     }
 
+    await initialize();
     final source = _findOnlineDevice(attachment.sourceFingerprint);
     if (source == null || source.ip == null) {
       state = state.copyWith(errorMessage: 'Source device is offline.');
