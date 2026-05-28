@@ -367,6 +367,7 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final attachment = message.attachment;
+    final hasImagePreview = attachment != null && _hasLocalAttachmentPath(attachment.localPath) && _hasThumbnailPreview(attachment.thumbnailPath);
     final scheme = Theme.of(context).colorScheme;
     final bubbleColor = isMine ? scheme.primaryContainer : scheme.surfaceContainerHigh;
     final textColor = isMine ? scheme.onPrimaryContainer : scheme.onSurface;
@@ -427,10 +428,14 @@ class _MessageBubble extends StatelessWidget {
                               context,
                             ).textTheme.bodyLarge!.copyWith(color: textColor),
                           ),
-                          ChatMessageKind.attachment when attachment != null && attachment.fileType == FileType.image => _ImageAttachmentCard(
-                            attachment: attachment,
-                            textColor: textColor,
-                          ),
+                          ChatMessageKind.attachment
+                              when attachment != null &&
+                                  attachment.fileType == FileType.image &&
+                                  hasImagePreview =>
+                                _ImageAttachmentCard(
+                                  attachment: attachment,
+                                  textColor: textColor,
+                                ),
                           ChatMessageKind.attachment when attachment != null => _AttachmentCard(
                             attachment: attachment,
                             textColor: textColor,
@@ -468,6 +473,23 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 
+bool _hasLocalAttachmentPath(String? localPath) {
+  if (localPath == null) {
+    return false;
+  }
+  if (localPath.startsWith('content://')) {
+    return true;
+  }
+  return File(localPath).existsSync();
+}
+
+bool _hasThumbnailPreview(String? thumbnailPath) {
+  if (thumbnailPath == null) {
+    return false;
+  }
+  return File(thumbnailPath).existsSync();
+}
+
 class _AttachmentCard extends StatelessWidget {
   final ChatAttachment attachment;
   final Color textColor;
@@ -486,17 +508,7 @@ class _AttachmentCard extends StatelessWidget {
         message: _MessageContextData.attachment(attachment),
       ),
       child: InkWell(
-        onTap: () async {
-          final notifier = context.ref.notifier(chatProvider);
-          if (await notifier.hasLocalAttachmentFile(attachment)) {
-            if (!context.mounted) {
-              return;
-            }
-            await notifier.openLocalAttachment(context, attachment);
-            return;
-          }
-          await notifier.requestAttachmentDownload(attachment);
-        },
+        onTap: () => _openAttachment(context, attachment),
         borderRadius: BorderRadius.circular(6),
         child: Padding(
           padding: const EdgeInsets.all(2),
@@ -561,7 +573,6 @@ class _ImageAttachmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasLocalFile = _hasLocalFile(attachment.localPath);
     return GestureDetector(
       onLongPressStart: (details) => _showCopyMenu(
         context: context,
@@ -583,15 +594,10 @@ class _ImageAttachmentCard extends StatelessWidget {
                   aspectRatio: 1.1,
                   child: DecoratedBox(
                     decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest),
-                    child: hasLocalFile
-                        ? _ImageAttachmentPreview(
-                            attachment: attachment,
-                            localPath: attachment.localPath!,
-                          )
-                        : _ImageAttachmentThumbnail(
-                            attachment: attachment,
-                            textColor: textColor,
-                          ),
+                    child: _ImageAttachmentPreview(
+                      attachment: attachment,
+                      localPath: attachment.localPath!,
+                    ),
                   ),
                 ),
               ),
@@ -615,18 +621,14 @@ class _ImageAttachmentCard extends StatelessWidget {
     );
   }
 
-  bool _hasLocalFile(String? localPath) {
-    if (localPath == null) {
-      return false;
-    }
-    if (localPath.startsWith('content://')) {
-      return true;
-    }
-    return File(localPath).existsSync();
-  }
-
   Future<void> _openImage(BuildContext context) async {
-    final notifier = context.ref.notifier(chatProvider);
+    await _openAttachment(context, attachment);
+  }
+}
+
+Future<void> _openAttachment(BuildContext context, ChatAttachment attachment) async {
+  final notifier = context.ref.notifier(chatProvider);
+  if (attachment.fileType == FileType.image) {
     final resolvedAttachment = await notifier.resolveAttachmentForPreview(attachment);
     if (resolvedAttachment == null) {
       await notifier.requestAttachmentDownload(attachment);
@@ -640,7 +642,18 @@ class _ImageAttachmentCard extends StatelessWidget {
         builder: (_) => ChatImagePreviewPage(attachment: resolvedAttachment),
       ),
     );
+    return;
   }
+
+  if (await notifier.hasLocalAttachmentFile(attachment)) {
+    if (!context.mounted) {
+      return;
+    }
+    await notifier.openLocalAttachment(context, attachment);
+    return;
+  }
+
+  await notifier.requestAttachmentDownload(attachment);
 }
 
 class _ImageAttachmentPreview extends StatelessWidget {
@@ -654,6 +667,21 @@ class _ImageAttachmentPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final thumbnailPath = attachment.thumbnailPath;
+    if (thumbnailPath != null) {
+      final thumbnailFile = File(thumbnailPath);
+      if (thumbnailFile.existsSync()) {
+        return Image.file(
+          thumbnailFile,
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+          errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined)),
+        );
+      }
+    }
+    if (localPath.startsWith('content://')) {
+      return const Center(child: Icon(Icons.image_outlined));
+    }
     final file = File(localPath);
     if (!file.existsSync()) {
       return const Center(child: Icon(Icons.broken_image_outlined));
@@ -663,49 +691,6 @@ class _ImageAttachmentPreview extends StatelessWidget {
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined)),
     );
-  }
-}
-
-class _ImageAttachmentThumbnail extends StatelessWidget {
-  final ChatAttachment attachment;
-  final Color textColor;
-
-  const _ImageAttachmentThumbnail({
-    required this.attachment,
-    required this.textColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final thumbnail = attachment.thumbnail;
-    if (thumbnail != null) {
-      return Image.memory(thumbnail, fit: BoxFit.cover, gaplessPlayback: true);
-    }
-    if (attachment.downloadPending) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 8),
-            Text('Downloading...', style: TextStyle(color: textColor)),
-          ],
-        ),
-      );
-    }
-    if (attachment.downloadError != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            attachment.downloadError!,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ),
-      );
-    }
-    return const Center(child: Icon(Icons.image_outlined));
   }
 }
 
