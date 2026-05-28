@@ -40,6 +40,8 @@ PODS:
     - FlutterMacOS
   - screen_retriever_macos (0.0.1):
     - FlutterMacOS
+  - share_plus (0.0.1):
+    - FlutterMacOS
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -77,6 +79,7 @@ DEPENDENCIES:
   - rhttp (from `Flutter/ephemeral/.symlinks/plugins/rhttp/macos`)
   - rust_lib_localsend_app (from `Flutter/ephemeral/.symlinks/plugins/rust_lib_localsend_app/macos`)
   - screen_retriever_macos (from `Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos`)
+  - share_plus (from `Flutter/ephemeral/.symlinks/plugins/share_plus/macos`)
   - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
   - tray_manager (from `Flutter/ephemeral/.symlinks/plugins/tray_manager/macos`)
   - uri_content (from `Flutter/ephemeral/.symlinks/plugins/uri_content/macos`)
@@ -126,6 +129,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/rust_lib_localsend_app/macos
   screen_retriever_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos
+  share_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/share_plus/macos
   shared_preferences_foundation:
     :path: Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin
   tray_manager:
@@ -161,6 +166,7 @@ SPEC CHECKSUMS:
   rhttp: 08d791d6373089de796318f4cfb172cbcf34e78b
   rust_lib_localsend_app: 293779a82668308386129c9669c081d201d3e278
   screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
+  share_plus: 510bf0af1a42cd602274b4629920c9649c52f4cc
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   tray_manager: a104b5c81b578d83f3c3d0f40a997c8b10810166
   uri_content: 6c7c098bcc83078659b4d274f42db92691eb9123
