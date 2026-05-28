@@ -626,6 +626,11 @@ class _ImageAttachmentCard extends StatelessWidget {
   }
 
   Future<void> _openImage(BuildContext context) async {
+    final notifier = context.ref.notifier(chatProvider);
+    if (!await notifier.hasLocalAttachmentFile(attachment)) {
+      await notifier.requestAttachmentDownload(attachment);
+      return;
+    }
     if (!context.mounted) {
       return;
     }

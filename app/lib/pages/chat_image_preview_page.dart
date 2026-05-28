@@ -5,8 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:localsend_app/model/chat/chat_models.dart';
 import 'package:localsend_app/provider/chat/chat_provider.dart';
-import 'package:localsend_app/provider/network/server/server_provider.dart';
-import 'package:localsend_app/provider/progress_provider.dart';
 import 'package:localsend_app/util/file_size_helper.dart';
 import 'package:localsend_app/util/native/open_file.dart';
 import 'package:localsend_app/util/ui/snackbar.dart';
@@ -27,42 +25,6 @@ class ChatImagePreviewPage extends StatefulWidget {
 }
 
 class _ChatImagePreviewPageState extends State<ChatImagePreviewPage> with Refena {
-  bool _startingDownload = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _ensureLocalFile();
-    });
-  }
-
-  Future<void> _ensureLocalFile() async {
-    final hasLocalPath = await context.ref.notifier(chatProvider).hasLocalAttachmentFile(widget.attachment);
-    if (!mounted || hasLocalPath) {
-      return;
-    }
-    await _startDownload();
-  }
-
-  Future<void> _startDownload() async {
-    if (_startingDownload) {
-      return;
-    }
-    setState(() {
-      _startingDownload = true;
-    });
-    try {
-      await context.ref.notifier(chatProvider).requestAttachmentDownload(widget.attachment);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _startingDownload = false;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final attachment = context.watch(
@@ -76,21 +38,13 @@ class _ChatImagePreviewPageState extends State<ChatImagePreviewPage> with Refena
             ),
       ),
     );
-    final session = context.watch(serverProvider.select((state) => state?.session));
-    final progressState = context.watch(progressProvider);
     final localPath = attachment.localPath;
     final hasLocalFile = _hasLocalFile(localPath);
-    final progress = _activeDownloadProgress(session, progressState, attachment);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(attachment.fileName, overflow: TextOverflow.ellipsis),
         actions: [
-          IconButton(
-            tooltip: 'Download',
-            onPressed: hasLocalFile ? null : _startDownload,
-            icon: const Icon(Icons.download_outlined),
-          ),
           IconButton(
             tooltip: 'Share',
             onPressed: hasLocalFile ? () => _shareAttachment(context, attachment) : null,
@@ -117,13 +71,7 @@ class _ChatImagePreviewPageState extends State<ChatImagePreviewPage> with Refena
                   maxScale: 4,
                   child: _ImageBody(localPath: localPath),
                 )
-              : _DownloadState(
-                  key: const ValueKey('download-state'),
-                  pending: _startingDownload,
-                  progress: progress,
-                  errorText: attachment.downloadError,
-                  onDownload: _startDownload,
-                ),
+              : const _MissingImageState(key: ValueKey('missing-image-state')),
         ),
       ),
     );
@@ -137,25 +85,6 @@ class _ChatImagePreviewPageState extends State<ChatImagePreviewPage> with Refena
       return true;
     }
     return File(localPath).existsSync();
-  }
-
-  double? _activeDownloadProgress(
-    dynamic session,
-    dynamic progressState,
-    ChatAttachment attachment,
-  ) {
-    if (session == null || session.sender.fingerprint != attachment.sourceFingerprint) {
-      return null;
-    }
-
-    final files = session.files.values.toList(growable: false);
-    for (final file in files) {
-      final candidate = file.file;
-      if (candidate.fileName == attachment.fileName && candidate.size == attachment.size) {
-        return progressState.getProgress(sessionId: session.sessionId, fileId: candidate.id);
-      }
-    }
-    return null;
   }
 
   Future<void> _shareAttachment(BuildContext context, ChatAttachment attachment) async {
@@ -204,51 +133,24 @@ class _ImageBody extends StatelessWidget {
   }
 }
 
-class _DownloadState extends StatelessWidget {
-  final Future<void> Function() onDownload;
-  final bool pending;
-  final double? progress;
-  final String? errorText;
-
-  const _DownloadState({
-    super.key,
-    required this.onDownload,
-    required this.pending,
-    required this.progress,
-    required this.errorText,
-  });
+class _MissingImageState extends StatelessWidget {
+  const _MissingImageState({super.key});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final statusText = pending
-        ? 'Downloading...'
-        : progress != null
-            ? 'Downloading ${(progress! * 100).toStringAsFixed(0)}%'
-            : 'Waiting for download';
-
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 360),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(value: pending ? null : progress),
-          const SizedBox(height: 16),
-          Text(statusText),
-          if (errorText != null) ...[
-            const SizedBox(height: 8),
-            Text(errorText!, textAlign: TextAlign.center, style: TextStyle(color: scheme.error)),
-          ],
+          Icon(Icons.broken_image_outlined, size: 48, color: scheme.outline),
           const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: onDownload,
-            icon: const Icon(Icons.download),
-            label: const Text('Download'),
+          Text(
+            'Image file is not available.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: scheme.onSurfaceVariant),
           ),
-          if (progress != null) ...[
-            const SizedBox(height: 8),
-            Text('${(progress! * 100).toStringAsFixed(0)}%', style: TextStyle(color: scheme.outline)),
-          ],
         ],
       ),
     );
