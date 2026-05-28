@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:common/model/device.dart';
 import 'package:common/model/file_type.dart';
 
@@ -121,6 +124,9 @@ class ChatAttachment {
   final String sourceFingerprint;
   final String remoteFileId;
   final String? localPath;
+  final Uint8List? thumbnail;
+  final bool downloadPending;
+  final String? downloadError;
   final int createdAt;
 
   const ChatAttachment({
@@ -132,6 +138,9 @@ class ChatAttachment {
     required this.sourceFingerprint,
     required this.remoteFileId,
     required this.localPath,
+    required this.thumbnail,
+    required this.downloadPending,
+    required this.downloadError,
     required this.createdAt,
   });
 
@@ -144,6 +153,9 @@ class ChatAttachment {
       'fileType': fileType.wireName,
       'sourceFingerprint': sourceFingerprint,
       'remoteFileId': remoteFileId,
+      'thumbnail': thumbnail == null ? null : base64Encode(thumbnail!),
+      'downloadPending': downloadPending,
+      'downloadError': downloadError,
       'createdAt': createdAt,
     };
   }
@@ -158,6 +170,9 @@ class ChatAttachment {
       sourceFingerprint: json['sourceFingerprint'] as String,
       remoteFileId: json['remoteFileId'] as String,
       localPath: localPath,
+      thumbnail: _decodeThumbnail(json['thumbnail']),
+      downloadPending: json['downloadPending'] as bool? ?? false,
+      downloadError: json['downloadError'] as String?,
       createdAt: _asInt(json['createdAt']),
     );
   }
@@ -166,6 +181,9 @@ class ChatAttachment {
     String? messageId,
     String? sourceFingerprint,
     String? localPath,
+    Uint8List? thumbnail,
+    bool? downloadPending,
+    String? downloadError,
   }) {
     return ChatAttachment(
       id: id,
@@ -176,6 +194,9 @@ class ChatAttachment {
       sourceFingerprint: sourceFingerprint ?? this.sourceFingerprint,
       remoteFileId: remoteFileId,
       localPath: localPath ?? this.localPath,
+      thumbnail: thumbnail ?? this.thumbnail,
+      downloadPending: downloadPending ?? this.downloadPending,
+      downloadError: downloadError ?? this.downloadError,
       createdAt: createdAt,
     );
   }
@@ -248,10 +269,23 @@ class ChatMessage {
       attachment: attachment ?? this.attachment,
     );
   }
+
+  bool get hasImageAttachment => attachment?.fileType == FileType.image;
 }
 
 int _asInt(Object? value) {
   return (value as num).toInt();
+}
+
+Uint8List? _decodeThumbnail(Object? value) {
+  if (value is! String || value.isEmpty) {
+    return null;
+  }
+  try {
+    return base64Decode(value);
+  } catch (_) {
+    return null;
+  }
 }
 
 class ChatState {

@@ -13,6 +13,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   pasteboard
   permission_handler_windows
   screen_retriever_windows
+  share_plus
   tray_manager
   uri_content
   url_launcher_windows

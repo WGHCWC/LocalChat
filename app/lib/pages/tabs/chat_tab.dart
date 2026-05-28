@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:common/model/file_type.dart';
 import 'package:desktop_drop/desktop_drop.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:localsend_app/gen/strings.g.dart';
 import 'package:localsend_app/model/chat/chat_models.dart';
 import 'package:localsend_app/model/cross_file.dart';
+import 'package:localsend_app/pages/chat_image_preview_page.dart';
 import 'package:localsend_app/provider/chat/chat_provider.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
 import 'package:localsend_app/provider/network/nearby_devices_provider.dart';
@@ -17,7 +19,9 @@ import 'package:localsend_app/util/native/cross_file_converters.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
 import 'package:localsend_app/util/ui/snackbar.dart';
 import 'package:localsend_app/widget/list_tile/device_list_tile.dart';
+import 'package:pasteboard/pasteboard.dart';
 import 'package:refena_flutter/refena_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ChatTab extends StatefulWidget {
   const ChatTab({super.key});
@@ -303,7 +307,7 @@ enum _ChatMenuAction {
   sync,
 }
 
-enum _MessageContextAction { copy }
+enum _MessageContextAction { copy, share }
 
 class _EmptyConversation extends StatelessWidget {
   final bool hasMembers;
@@ -368,7 +372,7 @@ class _MessageBubble extends StatelessWidget {
     final textColor = isMine ? scheme.onPrimaryContainer : scheme.onSurface;
     final crossAlign = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final rowAlign = isMine ? MainAxisAlignment.end : MainAxisAlignment.start;
-    final copyText = _copyTextForMessage(message);
+    final contextData = _contextDataForMessage(message);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -388,13 +392,20 @@ class _MessageBubble extends StatelessWidget {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: GestureDetector(
-                  onSecondaryTapDown: copyText == null
+                  onLongPressStart: contextData == null
                       ? null
                       : (details) => _showCopyMenu(
-                          context: context,
-                          position: details.globalPosition,
-                          value: copyText,
-                        ),
+                            context: context,
+                            position: details.globalPosition,
+                            message: contextData,
+                          ),
+                  onSecondaryTapDown: contextData == null
+                      ? null
+                      : (details) => _showCopyMenu(
+                            context: context,
+                            position: details.globalPosition,
+                            message: contextData,
+                          ),
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: bubbleColor,
@@ -415,6 +426,10 @@ class _MessageBubble extends StatelessWidget {
                             style: Theme.of(
                               context,
                             ).textTheme.bodyLarge!.copyWith(color: textColor),
+                          ),
+                          ChatMessageKind.attachment when attachment != null && attachment.fileType == FileType.image => _ImageAttachmentCard(
+                            attachment: attachment,
+                            textColor: textColor,
                           ),
                           ChatMessageKind.attachment when attachment != null => _AttachmentCard(
                             attachment: attachment,
@@ -441,14 +456,14 @@ class _MessageBubble extends StatelessWidget {
     return '$hour:$minute';
   }
 
-  String? _copyTextForMessage(ChatMessage message) {
+  _MessageContextData? _contextDataForMessage(ChatMessage message) {
     switch (message.kind) {
       case ChatMessageKind.text:
         final text = message.text;
-        return text == null || text.isEmpty ? null : text;
+        return text == null || text.isEmpty ? null : _MessageContextData.text(text);
       case ChatMessageKind.attachment:
         final attachment = message.attachment;
-        return attachment == null ? null : _attachmentCopyText(attachment);
+        return attachment == null ? null : _MessageContextData.attachment(attachment);
     }
   }
 }
@@ -464,15 +479,24 @@ class _AttachmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final copyText = _attachmentCopyText(attachment);
     return GestureDetector(
       onLongPressStart: (details) => _showCopyMenu(
         context: context,
         position: details.globalPosition,
-        value: copyText,
+        message: _MessageContextData.attachment(attachment),
       ),
       child: InkWell(
-        onTap: () => context.ref.notifier(chatProvider).requestAttachmentDownload(context, attachment),
+        onTap: () async {
+          final notifier = context.ref.notifier(chatProvider);
+          if (await notifier.hasLocalAttachmentFile(attachment)) {
+            if (!context.mounted) {
+              return;
+            }
+            await notifier.openLocalAttachment(context, attachment);
+            return;
+          }
+          await notifier.requestAttachmentDownload(attachment);
+        },
         borderRadius: BorderRadius.circular(6),
         child: Padding(
           padding: const EdgeInsets.all(2),
@@ -526,20 +550,195 @@ class _AttachmentCard extends StatelessWidget {
   }
 }
 
+class _ImageAttachmentCard extends StatelessWidget {
+  final ChatAttachment attachment;
+  final Color textColor;
+
+  const _ImageAttachmentCard({
+    required this.attachment,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasLocalFile = _hasLocalFile(attachment.localPath);
+    return GestureDetector(
+      onLongPressStart: (details) => _showCopyMenu(
+        context: context,
+        position: details.globalPosition,
+        message: _MessageContextData.attachment(attachment),
+      ),
+      child: InkWell(
+        onTap: () => _openImage(context),
+        borderRadius: BorderRadius.circular(6),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 160, maxWidth: 280),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: AspectRatio(
+                  aspectRatio: 1.1,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest),
+                    child: hasLocalFile
+                        ? _ImageAttachmentPreview(
+                            attachment: attachment,
+                            localPath: attachment.localPath!,
+                          )
+                        : _ImageAttachmentThumbnail(
+                            attachment: attachment,
+                            textColor: textColor,
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                attachment.fileName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                attachment.size.asReadableFileSize,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: textColor.withValues(alpha: 0.75),
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _hasLocalFile(String? localPath) {
+    if (localPath == null) {
+      return false;
+    }
+    if (localPath.startsWith('content://')) {
+      return true;
+    }
+    return File(localPath).existsSync();
+  }
+
+  Future<void> _openImage(BuildContext context) async {
+    if (!context.mounted) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChatImagePreviewPage(attachment: attachment),
+      ),
+    );
+  }
+}
+
+class _ImageAttachmentPreview extends StatelessWidget {
+  final ChatAttachment attachment;
+  final String localPath;
+
+  const _ImageAttachmentPreview({
+    required this.attachment,
+    required this.localPath,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final file = File(localPath);
+    if (!file.existsSync()) {
+      return const Center(child: Icon(Icons.broken_image_outlined));
+    }
+    return Image.file(
+      file,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined)),
+    );
+  }
+}
+
+class _ImageAttachmentThumbnail extends StatelessWidget {
+  final ChatAttachment attachment;
+  final Color textColor;
+
+  const _ImageAttachmentThumbnail({
+    required this.attachment,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbnail = attachment.thumbnail;
+    if (thumbnail != null) {
+      return Image.memory(thumbnail, fit: BoxFit.cover, gaplessPlayback: true);
+    }
+    if (attachment.downloadPending) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 8),
+            Text('Downloading...', style: TextStyle(color: textColor)),
+          ],
+        ),
+      );
+    }
+    if (attachment.downloadError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            attachment.downloadError!,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ),
+      );
+    }
+    return const Center(child: Icon(Icons.image_outlined));
+  }
+}
+
 String _attachmentCopyText(ChatAttachment attachment) {
   return '${attachment.fileName} (${attachment.size.asReadableFileSize})';
+}
+
+class _MessageContextData {
+  final ChatAttachment? attachment;
+  final String? text;
+
+  const _MessageContextData._({required this.attachment, required this.text});
+
+  factory _MessageContextData.text(String text) {
+    return _MessageContextData._(attachment: null, text: text);
+  }
+
+  factory _MessageContextData.attachment(ChatAttachment attachment) {
+    return _MessageContextData._(attachment: attachment, text: null);
+  }
+
+  String get copyText {
+    if (attachment != null) {
+      return _attachmentCopyText(attachment!);
+    }
+    return text ?? '';
+  }
 }
 
 void _showCopyMenu({
   required BuildContext context,
   required Offset position,
-  required String value,
+  required _MessageContextData message,
 }) {
   unawaited(
     _showCopyMenuAsync(
       context: context,
       position: position,
-      value: value,
+      message: message,
     ),
   );
 }
@@ -547,7 +746,7 @@ void _showCopyMenu({
 Future<void> _showCopyMenuAsync({
   required BuildContext context,
   required Offset position,
-  required String value,
+  required _MessageContextData message,
 }) async {
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
   final action = await showMenu<_MessageContextAction>(
@@ -565,16 +764,81 @@ Future<void> _showCopyMenuAsync({
           title: Text(t.general.copy),
         ),
       ),
+      const PopupMenuItem(
+        value: _MessageContextAction.share,
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.ios_share),
+          title: Text('Share'),
+        ),
+      ),
     ],
   );
-  if (action != _MessageContextAction.copy) {
-    return;
+
+  switch (action) {
+    case _MessageContextAction.copy:
+      await _copyMessageContext(message);
+      if (context.mounted && checkPlatformIsDesktop()) {
+        context.showSnackBar(t.general.copiedToClipboard);
+      }
+      break;
+    case _MessageContextAction.share:
+      await _shareMessageContext(message);
+      break;
+    case null:
+      break;
+  }
+}
+
+Future<void> _copyMessageContext(_MessageContextData message) async {
+  final attachment = message.attachment;
+  final localPath = attachment?.localPath;
+  if (attachment != null && localPath != null && !localPath.startsWith('content://')) {
+    final file = File(localPath);
+    if (file.existsSync()) {
+      final copiedFiles = await Pasteboard.writeFiles([localPath]);
+      if (copiedFiles) {
+        return;
+      }
+      if (attachment.fileType == FileType.image) {
+        try {
+          await Pasteboard.writeImage(await file.readAsBytes());
+          return;
+        } catch (_) {
+          // Fall back to text below.
+        }
+      }
+    }
   }
 
-  await Clipboard.setData(ClipboardData(text: value));
-  if (context.mounted && checkPlatformIsDesktop()) {
-    context.showSnackBar(t.general.copiedToClipboard);
+  await Clipboard.setData(ClipboardData(text: message.copyText));
+}
+
+Future<void> _shareMessageContext(_MessageContextData message) async {
+  final attachment = message.attachment;
+  final localPath = attachment?.localPath;
+  if (attachment != null && localPath != null && !localPath.startsWith('content://') && File(localPath).existsSync()) {
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          text: _attachmentCopyText(attachment),
+          title: attachment.fileName,
+          files: [XFile(localPath, name: attachment.fileName)],
+          fileNameOverrides: [attachment.fileName],
+        ),
+      );
+      return;
+    } catch (_) {
+      // Fall back to text below.
+    }
   }
+
+  await SharePlus.instance.share(
+    ShareParams(
+      text: message.copyText,
+      title: attachment?.fileName,
+    ),
+  );
 }
 
 class _Composer extends StatelessWidget {
