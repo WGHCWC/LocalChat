@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
 
-const double localSendAppBarHeight = 24;
+const double localSendAppBarHeight = 35;
 const double _macTrafficLightPadding = 72;
 
 ButtonStyle compactAppBarButtonStyle() {

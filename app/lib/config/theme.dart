@@ -9,6 +9,7 @@ import 'package:refena_flutter/refena_flutter.dart';
 import 'package:yaru/yaru.dart' as yaru;
 
 final _borderRadius = BorderRadius.circular(5);
+const _appBarHeight = 35.0;
 
 /// On desktop, we need to add additional padding to achieve the same visual appearance as on mobile
 double get desktopPaddingFix => checkPlatformIsDesktop() ? 8 : 0;
@@ -60,6 +61,7 @@ ThemeData getTheme(ColorMode colorMode, Brightness brightness, DynamicColors? dy
             iconTheme: WidgetStateProperty.all(const IconThemeData(color: Colors.white)),
           )
         : null,
+    appBarTheme: const AppBarTheme(toolbarHeight: _appBarHeight),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: colorScheme.secondaryContainer,
@@ -181,6 +183,7 @@ ThemeData _getYaruTheme(Brightness brightness) {
             iconTheme: WidgetStateProperty.all(const IconThemeData(color: Colors.white)),
           )
         : null,
+    appBarTheme: const AppBarTheme(toolbarHeight: _appBarHeight),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: colorScheme.secondaryContainer,
