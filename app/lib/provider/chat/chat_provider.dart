@@ -10,13 +10,13 @@ import 'package:flutter/widgets.dart';
 import 'package:image/image.dart' as img;
 import 'package:localsend_app/model/chat/chat_models.dart';
 import 'package:localsend_app/model/cross_file.dart';
-import 'package:localsend_app/model/persistence/receive_history_entry.dart';
 import 'package:localsend_app/model/persistence/favorite_device.dart';
+import 'package:localsend_app/model/persistence/receive_history_entry.dart';
 import 'package:localsend_app/provider/chat/chat_database.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
-import 'package:localsend_app/provider/persistence_provider.dart';
 import 'package:localsend_app/provider/network/nearby_devices_provider.dart';
 import 'package:localsend_app/provider/network/send_provider.dart';
+import 'package:localsend_app/provider/persistence_provider.dart';
 import 'package:localsend_app/provider/security_provider.dart';
 import 'package:localsend_app/util/file_path_helper.dart';
 import 'package:localsend_app/util/native/open_file.dart';
@@ -466,7 +466,8 @@ class ChatNotifier extends Notifier<ChatState> {
   Future<ChatAttachment?> resolveAttachmentForPreview(ChatAttachment attachment) async {
     await initialize();
     final current = _database!.getAttachment(attachment.id) ?? attachment;
-    final localPath = current.localPath ??
+    final localPath =
+        current.localPath ??
         _resolveAttachmentPathFromHistory(
           current,
           ref.read(persistenceProvider).getReceiveHistory().where((entry) => entry.path != null).toList(growable: false),
@@ -553,6 +554,9 @@ class ChatNotifier extends Notifier<ChatState> {
     if (checkPlatformIsDesktop() && !localPath.startsWith('content://') && file.existsSync()) {
       await openFolder(folderPath: file.parent.path, fileName: localPath.fileName);
     } else {
+      if (!context.mounted) {
+        return;
+      }
       await openFile(context, attachment.fileType, localPath);
     }
     state = state.copyWith(errorMessage: null);
