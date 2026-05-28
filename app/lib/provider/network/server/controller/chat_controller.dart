@@ -12,9 +12,7 @@ class ChatController {
 
   ChatController(this.server);
 
-  void installRoutes({
-    required SimpleServerRouteBuilder router,
-  }) {
+  void installRoutes({required SimpleServerRouteBuilder router}) {
     router.post(ApiRoute.chatSync.v2, (HttpRequest request) async {
       final payload = await _readJson(request);
       if (payload == null) {
@@ -26,12 +24,7 @@ class ChatController {
       }
 
       final messages = await server.ref.notifier(chatProvider).messagesNewerThan(sinceSentAt.toInt());
-      return await request.respondJson(
-        200,
-        body: {
-          'messages': messages.map((message) => message.toJson()).toList(growable: false),
-        },
-      );
+      return await request.respondJson(200, body: {'messages': messages.map((message) => message.toJson()).toList(growable: false)});
     });
 
     router.post(ApiRoute.chatNotify.v2, (HttpRequest request) async {
@@ -74,7 +67,7 @@ class ChatController {
         return await request.respondJson(400, message: 'Missing attachment request data.');
       }
 
-      final requester = deviceFromChatJson(Map<String, dynamic>.from(requesterRaw), fallbackIp: request.ip);
+      final requester = deviceFromChatJson(Map<String, dynamic>.from(requesterRaw), fallbackIp: request.ip, preferFallbackIp: true);
       final accepted = await server.ref.notifier(chatProvider).serveAttachmentDownload(attachmentId, requester);
       if (!accepted) {
         return await request.respondJson(404, message: 'Attachment is not available on this device.');
