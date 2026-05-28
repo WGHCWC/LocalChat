@@ -22,8 +22,8 @@ class HomePageController extends ReduxNotifier<HomePageVm> {
   @override
   HomePageVm init() {
     return HomePageVm(
-      controller: PageController(),
-      currentTab: HomeTab.receive,
+      controller: PageController(initialPage: HomeTab.chat.index),
+      currentTab: HomeTab.chat,
       changeTab: (tab) => redux.dispatch(ChangeTabAction(tab)),
     );
   }
