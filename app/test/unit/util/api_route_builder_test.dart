@@ -13,6 +13,13 @@ void main() {
       expect(ApiRoute.prepareUpload.v1, '/api/localsend/v1/send-request');
       expect(ApiRoute.prepareUpload.v2, '/api/localsend/v2/prepare-upload');
     });
+
+    test('chat', () {
+      expect(ApiRoute.chatSync.v2, '/api/localsend/v2/chat/sync');
+      expect(ApiRoute.chatNotify.v2, '/api/localsend/v2/chat/notify');
+      expect(ApiRoute.chatMessage.v2, '/api/localsend/v2/chat/message');
+      expect(ApiRoute.chatAttachment.v2, '/api/localsend/v2/chat/attachment');
+    });
   });
 
   group('ApiRoute typed client urls', () {

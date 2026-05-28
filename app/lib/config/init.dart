@@ -19,6 +19,7 @@ import 'package:localsend_app/pages/home_page.dart';
 import 'package:localsend_app/pages/home_page_controller.dart';
 import 'package:localsend_app/provider/animation_provider.dart';
 import 'package:localsend_app/provider/app_arguments_provider.dart';
+import 'package:localsend_app/provider/chat/chat_provider.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
 import 'package:localsend_app/provider/network/nearby_devices_provider.dart';
 import 'package:localsend_app/provider/network/server/server_provider.dart';
@@ -226,6 +227,15 @@ Future<void> postInit(BuildContext context, Ref ref, bool appStart) async {
   }
 
   ref.redux(signalingProvider).dispatch(SetupSignalingConnection());
+
+  if (appStart) {
+    try {
+      await ref.notifier(chatProvider).initialize();
+      ref.notifier(chatProvider).syncOnlineMembers(); // ignore: unawaited_futures
+    } catch (e) {
+      _logger.warning('Initializing chat failed', e);
+    }
+  }
 
   if (appStart) {
     if (defaultTargetPlatform == TargetPlatform.macOS) {
