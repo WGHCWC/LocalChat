@@ -24,6 +24,7 @@ import 'package:localsend_app/pages/home_page.dart';
 import 'package:localsend_app/pages/home_page_controller.dart';
 import 'package:localsend_app/pages/progress_page.dart';
 import 'package:localsend_app/pages/receive_page.dart';
+import 'package:localsend_app/provider/chat/chat_provider.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
 import 'package:localsend_app/provider/favorites_provider.dart';
 import 'package:localsend_app/provider/http_provider.dart';
@@ -224,6 +225,15 @@ class ReceiveController {
     final destinationDir = settings.destination ?? await getDefaultDestinationDirectory();
     final cacheDir = await getCacheDirectory();
     final sessionId = _uuid.v4();
+    final senderFingerprint = dto.info.fingerprint;
+    final autoAcceptChatAttachment =
+        senderFingerprint != null &&
+        server.ref
+            .notifier(chatProvider)
+            .consumePendingAttachmentDownload(
+              senderFingerprint: senderFingerprint,
+              files: dto.files.values,
+            );
 
     _logger.info('Session Id: $sessionId');
     _logger.info('Destination Directory: $destinationDir');
@@ -268,7 +278,7 @@ class ReceiveController {
       }
     }
     final Map<String, String>? selection;
-    if (quickSave) {
+    if (quickSave || autoAcceptChatAttachment) {
       // accept all files
       selection = {
         for (final f in dto.files.values) f.id: f.fileName,
