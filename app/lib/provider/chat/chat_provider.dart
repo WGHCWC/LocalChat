@@ -6,6 +6,7 @@ import 'package:common/api_route_builder.dart';
 import 'package:common/model/device.dart';
 import 'package:common/model/dto/file_dto.dart';
 import 'package:common/model/file_type.dart';
+import 'package:common/model/session_status.dart';
 import 'package:flutter/widgets.dart';
 import 'package:image/image.dart' as img;
 import 'package:localsend_app/model/chat/chat_models.dart';
@@ -183,8 +184,7 @@ class ChatNotifier extends Notifier<ChatState> {
         refreshOnlineMembers: refreshOnlineMembers,
         getSnapshotSentAt: () => _database!.getMaxSentAt(),
         getMembers: () => _database!.getMembers(),
-        getOnlineDevices: () =>
-            ref.read(nearbyDevicesProvider).allDevices.values,
+        getOnlineDevices: () => ref.read(nearbyDevicesProvider).allDevices.values,
         syncDevice: _syncAndRecord,
         onDeviceError: (device, e, st) {
           _logger.info('Could not sync chat with ${device.alias}', e, st);
@@ -499,7 +499,7 @@ class ChatNotifier extends Notifier<ChatState> {
       lastAccessed = file.lastAccessedSync().toUtc();
     }
 
-    await ref
+    final status = await ref
         .notifier(sendProvider)
         .startSession(
           target: requester,
@@ -518,7 +518,7 @@ class ChatNotifier extends Notifier<ChatState> {
           ],
           background: true,
         );
-    return true;
+    return status == SessionStatus.finished;
   }
 
   Future<bool> hasLocalAttachmentFile(ChatAttachment attachment) async {

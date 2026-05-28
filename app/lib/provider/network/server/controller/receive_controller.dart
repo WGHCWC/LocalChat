@@ -262,7 +262,12 @@ class ReceiveController {
           endTime: null,
           destinationDirectory: destinationDir,
           cacheDirectory: cacheDir,
-          saveToGallery: checkPlatformWithGallery() && settings.saveToGallery && dto.files.values.every((f) => !f.fileName.contains('/')),
+          saveToGallery:
+              !autoAcceptChatAttachment &&
+              checkPlatformWithGallery() &&
+              settings.saveToGallery &&
+              dto.files.values.every((f) => !f.fileName.contains('/')),
+          autoClose: autoAcceptChatAttachment,
           createdDirectories: {},
           responseHandler: streamController,
         ),
@@ -635,11 +640,15 @@ class ReceiveController {
           quickSave = true;
         }
       }
-      if (quickSave) {
+      if (quickSave || session.autoClose) {
         // close the session **after** return of the response
         Future.delayed(Duration.zero, () {
           closeSession();
           _logger.info('Closing session');
+
+          if (session.autoClose) {
+            return;
+          }
 
           // ignore: use_build_context_synchronously, discarded_futures
           Routerino.context.pushRootImmediately(() => const HomePage(initialTab: HomeTab.receive, appStart: false));
@@ -659,7 +668,8 @@ class ReceiveController {
       _logger.info('Received all files.');
     }
 
-    return server.getState().session?.files[fileId]?.status == FileStatus.finished
+    final savedSuccessfully = server.getState().session?.files[fileId]?.status == FileStatus.finished;
+    return savedSuccessfully
         ? await request.respondJson(200)
         : await request.respondJson(500, message: 'Could not save file. Check receiving device for more information.');
   }
