@@ -11,6 +11,12 @@ class ChatDatabase {
 
   ChatDatabase._(this._db);
 
+  static ChatDatabase openInMemoryForTest() {
+    final database = ChatDatabase._(sqlite3.openInMemory());
+    database._migrate();
+    return database;
+  }
+
   static Future<ChatDatabase> open() async {
     final supportDir = await getApplicationSupportDirectory();
     final dbDir = Directory(p.join(supportDir.path, 'localsend'));
@@ -86,7 +92,10 @@ class ChatDatabase {
   }
 
   void _addColumnIfMissing(String table, String column, String definition) {
-    final columns = _db.select('PRAGMA table_info($table);').map((row) => row['name']).toSet();
+    final columns = _db
+        .select('PRAGMA table_info($table);')
+        .map((row) => row['name'])
+        .toSet();
     if (!columns.contains(column)) {
       _db.execute('ALTER TABLE $table ADD COLUMN $column $definition;');
     }
@@ -284,7 +293,7 @@ class ChatDatabase {
     return rows.map(_messageFromRow).toList(growable: false);
   }
 
-  List<ChatMessage> getMessagesNewerThan(
+  List<ChatMessage> getMessagesAtOrAfter(
     int sentAt, {
     String roomId = defaultChatRoomId,
   }) {
@@ -312,7 +321,7 @@ class ChatDatabase {
         a.created_at
       FROM chat_messages m
       LEFT JOIN chat_attachments a ON a.message_id = m.id
-      WHERE m.room_id = ? AND m.sent_at > ?
+      WHERE m.room_id = ? AND m.sent_at >= ?
       ORDER BY m.sent_at ASC, m.received_at ASC;
       ''',
       [roomId, sentAt],
@@ -430,7 +439,9 @@ class ChatDatabase {
   }
 
   ChatMessage _messageFromRow(Row row) {
-    final attachment = row['attachment_id'] == null ? null : _attachmentFromRow(row);
+    final attachment = row['attachment_id'] == null
+        ? null
+        : _attachmentFromRow(row);
     return ChatMessage(
       id: row['message_id'] as String,
       roomId: row['room_id'] as String,

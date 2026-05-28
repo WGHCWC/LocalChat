@@ -23,8 +23,17 @@ class ChatController {
         return await request.respondJson(400, message: 'Missing sinceSentAt.');
       }
 
-      final messages = await server.ref.notifier(chatProvider).messagesNewerThan(sinceSentAt.toInt());
-      return await request.respondJson(200, body: {'messages': messages.map((message) => message.toJson()).toList(growable: false)});
+      final messages = await server.ref
+          .notifier(chatProvider)
+          .messagesAtOrAfter(sinceSentAt.toInt());
+      return await request.respondJson(
+        200,
+        body: {
+          'messages': messages
+              .map((message) => message.toJson())
+              .toList(growable: false),
+        },
+      );
     });
 
     router.post(ApiRoute.chatNotify.v2, (HttpRequest request) async {
@@ -37,8 +46,13 @@ class ChatController {
         return await request.respondJson(400, message: 'Missing sender.');
       }
 
-      final sender = deviceFromChatJson(Map<String, dynamic>.from(senderRaw), fallbackIp: request.ip);
-      await server.ref.notifier(chatProvider).handleIncomingNotification(sender);
+      final sender = deviceFromChatJson(
+        Map<String, dynamic>.from(senderRaw),
+        fallbackIp: request.ip,
+      );
+      await server.ref
+          .notifier(chatProvider)
+          .handleIncomingNotification(sender);
       return await request.respondJson(202);
     });
 
@@ -52,7 +66,11 @@ class ChatController {
         return await request.respondJson(400, message: 'Missing message.');
       }
 
-      await server.ref.notifier(chatProvider).receiveMessage(ChatMessage.fromJson(Map<String, dynamic>.from(messageRaw)));
+      await server.ref
+          .notifier(chatProvider)
+          .receiveMessage(
+            ChatMessage.fromJson(Map<String, dynamic>.from(messageRaw)),
+          );
       return await request.respondJson(204);
     });
 
@@ -64,13 +82,25 @@ class ChatController {
       final attachmentId = payload['attachmentId'];
       final requesterRaw = payload['requester'];
       if (attachmentId is! String || requesterRaw is! Map) {
-        return await request.respondJson(400, message: 'Missing attachment request data.');
+        return await request.respondJson(
+          400,
+          message: 'Missing attachment request data.',
+        );
       }
 
-      final requester = deviceFromChatJson(Map<String, dynamic>.from(requesterRaw), fallbackIp: request.ip, preferFallbackIp: true);
-      final accepted = await server.ref.notifier(chatProvider).serveAttachmentDownload(attachmentId, requester);
+      final requester = deviceFromChatJson(
+        Map<String, dynamic>.from(requesterRaw),
+        fallbackIp: request.ip,
+        preferFallbackIp: true,
+      );
+      final accepted = await server.ref
+          .notifier(chatProvider)
+          .serveAttachmentDownload(attachmentId, requester);
       if (!accepted) {
-        return await request.respondJson(404, message: 'Attachment is not available on this device.');
+        return await request.respondJson(
+          404,
+          message: 'Attachment is not available on this device.',
+        );
       }
 
       return await request.respondJson(202);

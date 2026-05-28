@@ -13,6 +13,7 @@ import 'package:localsend_app/model/cross_file.dart';
 import 'package:localsend_app/model/persistence/favorite_device.dart';
 import 'package:localsend_app/model/persistence/receive_history_entry.dart';
 import 'package:localsend_app/provider/chat/chat_database.dart';
+import 'package:localsend_app/provider/chat/chat_sync.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
 import 'package:localsend_app/provider/network/nearby_devices_provider.dart';
 import 'package:localsend_app/provider/network/send_provider.dart';
@@ -177,24 +178,17 @@ class ChatNotifier extends Notifier<ChatState> {
 
     state = state.copyWith(syncing: true, errorMessage: null);
     try {
-      await refreshOnlineMembers();
-      final sinceSentAt = _database!.getMaxSentAt();
-      final onlineByFingerprint = {
-        for (final device in ref.read(nearbyDevicesProvider).allDevices.values)
-          if (device.ip != null) device.fingerprint: device,
-      };
-
-      for (final member in _database!.getMembers()) {
-        final device = onlineByFingerprint[member.fingerprint];
-        if (device == null || device.ip == null) {
-          continue;
-        }
-        try {
-          await _syncAndRecord(device, sinceSentAt);
-        } catch (e, st) {
+      await syncOnlineChatMembersWithSnapshot(
+        refreshOnlineMembers: refreshOnlineMembers,
+        getSnapshotSentAt: () => _database!.getMaxSentAt(),
+        getMembers: () => _database!.getMembers(),
+        getOnlineDevices: () =>
+            ref.read(nearbyDevicesProvider).allDevices.values,
+        syncDevice: _syncAndRecord,
+        onDeviceError: (device, e, st) {
           _logger.info('Could not sync chat with ${device.alias}', e, st);
-        }
-      }
+        },
+      );
       _refreshFromDb();
     } catch (e, st) {
       _logger.warning('Chat sync failed', e, st);
@@ -320,9 +314,9 @@ class ChatNotifier extends Notifier<ChatState> {
     }
   }
 
-  Future<List<ChatMessage>> messagesNewerThan(int sentAt) async {
+  Future<List<ChatMessage>> messagesAtOrAfter(int sentAt) async {
     await initialize();
-    return _database!.getMessagesNewerThan(sentAt);
+    return _database!.getMessagesAtOrAfter(sentAt);
   }
 
   Future<void> requestAttachmentDownload(ChatAttachment attachment) async {
