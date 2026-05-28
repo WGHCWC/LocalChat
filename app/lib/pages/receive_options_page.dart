@@ -47,9 +47,7 @@ class ReceiveOptionsPage extends StatelessWidget {
                     onPressed: () async {
                       final directory = await pickDirectoryPath();
                       if (directory != null) {
-                        ref
-                            .notifier(serverProvider)
-                            .setSessionDestinationDir(directory);
+                        ref.notifier(serverProvider).setSessionDestinationDir(directory);
                       }
                     },
                     child: const Icon(Icons.edit),
@@ -59,9 +57,7 @@ class ReceiveOptionsPage extends StatelessWidget {
           ),
           const SizedBox(height: 5),
           Text(
-            checkPlatformWithFileSystem()
-                ? receiveSession.destinationDirectory
-                : t.receiveOptionsPage.appDirectory,
+            checkPlatformWithFileSystem() ? receiveSession.destinationDirectory : t.receiveOptionsPage.appDirectory,
           ),
           if (checkPlatformWithGallery())
             Column(
@@ -93,12 +89,9 @@ class ReceiveOptionsPage extends StatelessWidget {
                           ),
                         );
                       }).toList(),
-                      onChanged: (b) => ref
-                          .notifier(serverProvider)
-                          .setSessionSaveToGallery(b),
+                      onChanged: (b) => ref.notifier(serverProvider).setSessionSaveToGallery(b),
                     ),
-                    if (receiveSession.containsDirectories &&
-                        !receiveSession.saveToGallery) ...[
+                    if (receiveSession.containsDirectories && !receiveSession.saveToGallery) ...[
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -135,9 +128,7 @@ class ReceiveOptionsPage extends StatelessWidget {
               Tooltip(
                 message: t.general.reset,
                 child: CustomIconButton(
-                  onPressed: () => ref
-                      .notifier(selectedReceivingFilesProvider)
-                      .setFiles(vm.files),
+                  onPressed: () => ref.notifier(selectedReceivingFilesProvider).setFiles(vm.files),
                   child: const Icon(Icons.undo),
                 ),
               ),
@@ -193,9 +184,7 @@ class ReceiveOptionsPage extends StatelessWidget {
                                   ),
                                 );
                                 if (result != null) {
-                                  ref
-                                      .notifier(selectedReceivingFilesProvider)
-                                      .rename(file.id, result);
+                                  ref.notifier(selectedReceivingFilesProvider).rename(file.id, result);
                                 }
                               },
                         child: const Icon(Icons.edit),
@@ -206,13 +195,9 @@ class ReceiveOptionsPage extends StatelessWidget {
                         checkColor: Theme.of(context).colorScheme.surface,
                         onChanged: (selected) {
                           if (selected == true) {
-                            ref
-                                .notifier(selectedReceivingFilesProvider)
-                                .select(file);
+                            ref.notifier(selectedReceivingFilesProvider).select(file);
                           } else {
-                            ref
-                                .notifier(selectedReceivingFilesProvider)
-                                .unselect(file.id);
+                            ref.notifier(selectedReceivingFilesProvider).unselect(file.id);
                           }
                         },
                       ),
