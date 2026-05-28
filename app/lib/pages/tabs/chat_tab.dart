@@ -609,54 +609,81 @@ class _Composer extends StatelessWidget {
     required this.onSendFiles,
   });
 
+  Future<void> _sendCurrentText() async {
+    final text = controller.text;
+    controller.clear();
+    await onSendText(text);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final composer = Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        IconButton(
+          tooltip: 'Send file',
+          icon: const Icon(Icons.add_circle_outline),
+          onPressed: () async {
+            final files = await openFiles();
+            if (files.isEmpty) {
+              return;
+            }
+            final crossFiles = <CrossFile>[];
+            for (final file in files) {
+              crossFiles.add(await CrossFileConverters.convertXFile(file));
+            }
+            await onSendFiles(crossFiles);
+          },
+        ),
+        Expanded(
+          child: TextField(
+            controller: controller,
+            minLines: 1,
+            maxLines: 5,
+            textInputAction: TextInputAction.newline,
+            decoration: const InputDecoration(hintText: 'Message'),
+          ),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          onPressed: _sendCurrentText,
+          child: const Text('Send'),
+        ),
+      ],
+    );
+
+    final wrappedComposer = checkPlatformIsDesktop()
+        ? Shortcuts(
+            shortcuts: const <ShortcutActivator, Intent>{
+              SingleActivator(LogicalKeyboardKey.enter): _SendMessageIntent(),
+            },
+            child: Actions(
+              actions: <Type, Action<Intent>>{
+                _SendMessageIntent: CallbackAction<_SendMessageIntent>(
+                  onInvoke: (_) {
+                    unawaited(_sendCurrentText());
+                    return null;
+                  },
+                ),
+              },
+              child: composer,
+            ),
+          )
+        : composer;
+
     return SafeArea(
       top: false,
       child: Container(
         color: Theme.of(context).scaffoldBackgroundColor,
         padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            IconButton(
-              tooltip: 'Send file',
-              icon: const Icon(Icons.add_circle_outline),
-              onPressed: () async {
-                final files = await openFiles();
-                if (files.isEmpty) {
-                  return;
-                }
-                final crossFiles = <CrossFile>[];
-                for (final file in files) {
-                  crossFiles.add(await CrossFileConverters.convertXFile(file));
-                }
-                await onSendFiles(crossFiles);
-              },
-            ),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                minLines: 1,
-                maxLines: 5,
-                textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(hintText: 'Message'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: () async {
-                final text = controller.text;
-                controller.clear();
-                await onSendText(text);
-              },
-              child: const Text('Send'),
-            ),
-          ],
-        ),
+        child: wrappedComposer,
       ),
     );
   }
+}
+
+class _SendMessageIntent extends Intent {
+  const _SendMessageIntent();
 }
 
 class _MemberManagementSheet extends StatelessWidget {
