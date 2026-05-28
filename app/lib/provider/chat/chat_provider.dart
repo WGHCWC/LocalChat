@@ -10,9 +10,11 @@ import 'package:flutter/widgets.dart';
 import 'package:image/image.dart' as img;
 import 'package:localsend_app/model/chat/chat_models.dart';
 import 'package:localsend_app/model/cross_file.dart';
+import 'package:localsend_app/model/persistence/receive_history_entry.dart';
 import 'package:localsend_app/model/persistence/favorite_device.dart';
 import 'package:localsend_app/provider/chat/chat_database.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
+import 'package:localsend_app/provider/persistence_provider.dart';
 import 'package:localsend_app/provider/network/nearby_devices_provider.dart';
 import 'package:localsend_app/provider/network/send_provider.dart';
 import 'package:localsend_app/provider/security_provider.dart';
@@ -52,6 +54,7 @@ class ChatNotifier extends Notifier<ChatState> {
     _database ??= await ChatDatabase.open();
     _client ??= createRhttpClient(const Duration(seconds: 10), ref.read(securityProvider));
     _refreshFromDb();
+    await _backfillAttachmentLocalPathsFromHistory();
     state = state.copyWith(initialized: true);
   }
 
@@ -233,6 +236,63 @@ class ChatNotifier extends Notifier<ChatState> {
     _refreshFromDb();
   }
 
+  Future<void> _backfillAttachmentLocalPathsFromHistory() async {
+    final history = ref.read(persistenceProvider).getReceiveHistory().where((entry) => entry.path != null).toList(growable: false);
+    if (history.isEmpty) {
+      return;
+    }
+
+    var updated = false;
+    for (final message in _database!.getMessages()) {
+      final attachment = message.attachment;
+      if (attachment == null) {
+        continue;
+      }
+      if (_hasUsableLocalPath(attachment.localPath)) {
+        continue;
+      }
+
+      final resolvedPath = _resolveAttachmentPathFromHistory(attachment, history);
+      if (resolvedPath == null) {
+        continue;
+      }
+
+      _database!.updateAttachmentLocalPath(
+        attachmentId: attachment.id,
+        localPath: resolvedPath,
+        downloadPending: false,
+        downloadError: null,
+      );
+      if (attachment.fileType == FileType.image && attachment.thumbnail == null && !resolvedPath.startsWith('content://')) {
+        final thumbnail = await _buildThumbnailBytesFromFile(resolvedPath);
+        if (thumbnail != null) {
+          _database!.updateAttachmentThumbnail(
+            attachmentId: attachment.id,
+            thumbnail: thumbnail,
+          );
+        }
+      }
+      updated = true;
+    }
+
+    if (updated) {
+      _refreshFromDb();
+    }
+  }
+
+  String? _resolveAttachmentPathFromHistory(ChatAttachment attachment, List<ReceiveHistoryEntry> historyEntries) {
+    for (final entry in historyEntries) {
+      if (entry.fileName != attachment.fileName || entry.fileSize != attachment.size) {
+        continue;
+      }
+      final path = entry.path;
+      if (_hasUsableLocalPath(path)) {
+        return path;
+      }
+    }
+    return null;
+  }
+
   Future<void> handleIncomingNotification(Device sender) async {
     await initialize();
     if (!_isChatMember(sender.fingerprint)) {
@@ -399,23 +459,60 @@ class ChatNotifier extends Notifier<ChatState> {
 
   Future<bool> hasLocalAttachmentFile(ChatAttachment attachment) async {
     await initialize();
-    final localPath = attachment.localPath;
+    final resolvedAttachment = await resolveAttachmentForPreview(attachment);
+    return resolvedAttachment != null;
+  }
+
+  Future<ChatAttachment?> resolveAttachmentForPreview(ChatAttachment attachment) async {
+    await initialize();
+    final current = _database!.getAttachment(attachment.id) ?? attachment;
+    final localPath = current.localPath ??
+        _resolveAttachmentPathFromHistory(
+          current,
+          ref.read(persistenceProvider).getReceiveHistory().where((entry) => entry.path != null).toList(growable: false),
+        );
+    if (!_hasUsableLocalPath(localPath)) {
+      if (current.localPath != null && current.localPath!.isNotEmpty) {
+        _database!.updateAttachmentLocalPath(
+          attachmentId: current.id,
+          localPath: null,
+          downloadError: 'Local file is missing.',
+        );
+        _refreshFromDb();
+      }
+      return null;
+    }
+
+    if (localPath != current.localPath) {
+      _database!.updateAttachmentLocalPath(
+        attachmentId: current.id,
+        localPath: localPath,
+        downloadPending: false,
+        downloadError: null,
+      );
+      if (current.fileType == FileType.image && current.thumbnail == null && !localPath!.startsWith('content://')) {
+        final thumbnail = await _buildThumbnailBytesFromFile(localPath);
+        if (thumbnail != null) {
+          _database!.updateAttachmentThumbnail(
+            attachmentId: current.id,
+            thumbnail: thumbnail,
+          );
+        }
+      }
+      _refreshFromDb();
+    }
+
+    return _database!.getAttachment(current.id);
+  }
+
+  bool _hasUsableLocalPath(String? localPath) {
     if (localPath == null) {
       return false;
     }
     if (localPath.startsWith('content://')) {
       return true;
     }
-    final exists = File(localPath).existsSync();
-    if (!exists) {
-      _database!.updateAttachmentLocalPath(
-        attachmentId: attachment.id,
-        localPath: null,
-        downloadError: 'Local file is missing.',
-      );
-      _refreshFromDb();
-    }
-    return exists;
+    return File(localPath).existsSync();
   }
 
   bool consumePendingAttachmentDownload({
@@ -444,7 +541,8 @@ class ChatNotifier extends Notifier<ChatState> {
   }
 
   Future<void> openLocalAttachment(BuildContext context, ChatAttachment attachment) async {
-    final localPath = attachment.localPath;
+    final resolvedAttachment = await resolveAttachmentForPreview(attachment);
+    final localPath = resolvedAttachment?.localPath;
     if (localPath == null) {
       state = state.copyWith(errorMessage: 'Local file path is unavailable.');
       return;
