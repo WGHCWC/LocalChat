@@ -89,7 +89,9 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       titleSpacing: 12,
-      leadingWidth: isMacOs ? _macTrafficLightPadding + (selectingMessages ? 48 : 0) : null,
+      leadingWidth: isMacOs
+          ? _macTrafficLightPadding + (selectingMessages ? 48 : 0)
+          : null,
       leading: _buildLeading(isMacOs),
       title: _buildTitle(context, isMacOs),
       actions: [
@@ -248,6 +250,7 @@ class _ChatTabState extends State<ChatTab> with Refena {
   String? _lastRenderedMessageId;
   int _lastRenderedMessageCount = 0;
   bool _hasAutoScrolledInitialMessages = false;
+  bool _scrollToBottomAfterOwnSend = false;
 
   static const double _bottomAutoScrollThreshold = 96;
 
@@ -327,7 +330,8 @@ class _ChatTabState extends State<ChatTab> with Refena {
     }
 
     final position = _scrollController.position;
-    return position.maxScrollExtent - position.pixels <= _bottomAutoScrollThreshold;
+    return position.maxScrollExtent - position.pixels <=
+        _bottomAutoScrollThreshold;
   }
 
   void _scrollMessagesToBottom() {
@@ -347,14 +351,20 @@ class _ChatTabState extends State<ChatTab> with Refena {
     );
 
     final currentMessageCount = chat.messages.length;
-    final currentLastMessageId = chat.messages.isEmpty ? null : chat.messages.last.id;
-    final isInitialMessageLoad = currentLastMessageId != null && !_hasAutoScrolledInitialMessages;
+    final currentLastMessageId = chat.messages.isEmpty
+        ? null
+        : chat.messages.last.id;
+    final isInitialMessageLoad =
+        currentLastMessageId != null && !_hasAutoScrolledInitialMessages;
     final hasNewTrailingMessage =
         currentLastMessageId != null &&
         _lastRenderedMessageId != null &&
         currentMessageCount > _lastRenderedMessageCount &&
         currentLastMessageId != _lastRenderedMessageId;
-    final shouldAutoScroll = isInitialMessageLoad || (hasNewTrailingMessage && _isNearMessageListBottom());
+    final shouldAutoScroll =
+        isInitialMessageLoad ||
+        _scrollToBottomAfterOwnSend ||
+        (hasNewTrailingMessage && _isNearMessageListBottom());
     final staleSelectedIds = _selectingMessages
         ? _selectedMessageIds.difference(
             chat.messages.map((message) => message.id).toSet(),
@@ -367,6 +377,9 @@ class _ChatTabState extends State<ChatTab> with Refena {
       _hasAutoScrolledInitialMessages = false;
     } else if (isInitialMessageLoad) {
       _hasAutoScrolledInitialMessages = true;
+    }
+    if (_scrollToBottomAfterOwnSend) {
+      _scrollToBottomAfterOwnSend = false;
     }
 
     if (shouldAutoScroll || staleSelectedIds.isNotEmpty) {
@@ -390,14 +403,19 @@ class _ChatTabState extends State<ChatTab> with Refena {
       appBar: _ChatAppBar(
         selectingMessages: _selectingMessages,
         selectedMessageCount: _selectedMessageIds.length,
-        onlineMemberCount: chat.members.where((member) => member.ip != null).length,
+        onlineMemberCount: chat.members
+            .where((member) => member.ip != null)
+            .length,
         syncing: chat.syncing,
         messagesEmpty: chat.messages.isEmpty,
         shellDestinations: widget.shellDestinations,
         onExitSelection: _exitMessageSelection,
         onSelectAllMessages: () => _selectAllMessages(chat.messages),
-        onDeleteSelectedMessages: _selectedMessageIds.isEmpty ? null : _deleteSelectedMessages,
-        onSyncNow: () async => context.ref.notifier(chatProvider).syncOnlineMembers(),
+        onDeleteSelectedMessages: _selectedMessageIds.isEmpty
+            ? null
+            : _deleteSelectedMessages,
+        onSyncNow: () async =>
+            context.ref.notifier(chatProvider).syncOnlineMembers(),
         onShowMembers: () async {
           if (!context.mounted) {
             return;
@@ -428,7 +446,7 @@ class _ChatTabState extends State<ChatTab> with Refena {
             ),
           Expanded(
             child: _DesktopChatDropTarget(
-              onSendFiles: (files) => context.ref.notifier(chatProvider).sendAttachments(files),
+              onSendFiles: _sendFiles,
               child: chat.messages.isEmpty
                   ? _EmptyConversation(
                       hasMembers: chat.members.isNotEmpty,
@@ -457,7 +475,8 @@ class _ChatTabState extends State<ChatTab> with Refena {
                           itemCount: chat.messages.length,
                           itemBuilder: (context, index) {
                             final message = chat.messages[index];
-                            final isMine = message.senderFingerprint == myFingerprint;
+                            final isMine =
+                                message.senderFingerprint == myFingerprint;
                             return _MessageBubble(
                               message: message,
                               isMine: isMine,
@@ -477,12 +496,28 @@ class _ChatTabState extends State<ChatTab> with Refena {
           ),
           _Composer(
             controller: _controller,
-            onSendText: (text) => context.ref.notifier(chatProvider).sendText(text),
-            onSendFiles: (files) => context.ref.notifier(chatProvider).sendAttachments(files),
+            onSendText: _sendText,
+            onSendFiles: _sendFiles,
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _sendText(String text) async {
+    if (text.trim().isEmpty) {
+      return;
+    }
+    _scrollToBottomAfterOwnSend = true;
+    await context.ref.notifier(chatProvider).sendText(text);
+  }
+
+  Future<void> _sendFiles(List<CrossFile> files) async {
+    if (files.isEmpty) {
+      return;
+    }
+    _scrollToBottomAfterOwnSend = true;
+    await context.ref.notifier(chatProvider).sendAttachments(files);
   }
 }
 
@@ -577,13 +612,18 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            _sending ? Icons.upload_file : Icons.file_upload_outlined,
+                            _sending
+                                ? Icons.upload_file
+                                : Icons.file_upload_outlined,
                             color: scheme.onPrimaryContainer,
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            _sending ? 'Sending files...' : 'Drop files to send',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: scheme.onPrimaryContainer),
+                            _sending
+                                ? 'Sending files...'
+                                : 'Drop files to send',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(color: scheme.onPrimaryContainer),
                           ),
                         ],
                       ),
@@ -632,7 +672,9 @@ class _EmptyConversation extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              hasMembers ? 'Send a message or share a file from the input bar below.' : 'Open the top-right menu and manage users first.',
+              hasMembers
+                  ? 'Send a message or share a file from the input bar below.'
+                  : 'Open the top-right menu and manage users first.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -671,85 +713,112 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final attachment = message.attachment;
-    final hasImagePreview = attachment != null && _hasLocalAttachmentPath(attachment.localPath) && _hasThumbnailPreview(attachment.thumbnailPath);
+    final hasImagePreview =
+        attachment != null &&
+        _hasLocalAttachmentPath(attachment.localPath) &&
+        _hasThumbnailPreview(attachment.thumbnailPath);
     final scheme = Theme.of(context).colorScheme;
-    final bubbleColor = isMine ? scheme.primaryContainer : scheme.surfaceContainerHigh;
-    final textColor = isMine ? scheme.onPrimaryContainer : scheme.onSurface;
-    final crossAlign = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final bubbleColor = _messageUserColor(message.senderFingerprint, scheme);
+    final textColor = _readableTextColor(bubbleColor, scheme);
+    final crossAlign = isMine
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
     final contextData = _contextDataForMessage(message);
     final checkbox = Checkbox(
       value: isSelected,
       onChanged: (_) => onToggleSelection(message.id),
     );
-    final bubble = ConstrainedBox(
+    final messageCell = ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 420),
-      child: GestureDetector(
-        onTap: isSelectionMode ? () => onToggleSelection(message.id) : onClearSelection,
-        onLongPressStart: contextData == null
-            ? null
-            : (details) => _showCopyMenu(
-                context: context,
-                position: details.globalPosition,
-                message: contextData,
-                onSelect: onEnterSelection,
-              ),
-        onSecondaryTapDown: contextData == null
-            ? null
-            : (details) => _showCopyMenu(
-                context: context,
-                position: details.globalPosition,
-                message: contextData,
-                onSelect: onEnterSelection,
-              ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: isSelected
-                ? Color.alphaBlend(
-                    scheme.secondary.withValues(alpha: 0.16),
-                    bubbleColor,
-                  )
-                : bubbleColor,
-            borderRadius: BorderRadius.circular(8),
-            border: isSelected ? Border.all(color: scheme.secondary, width: 2) : null,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Color.alphaBlend(
+                  scheme.secondary.withValues(alpha: 0.16),
+                  bubbleColor,
+                )
+              : bubbleColor,
+          borderRadius: BorderRadius.circular(8),
+          border: isSelected
+              ? Border.all(color: scheme.secondary, width: 2)
+              : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: GestureDetector(
+            onTap: isSelectionMode
+                ? () => onToggleSelection(message.id)
+                : onClearSelection,
+            onLongPressStart: contextData == null
+                ? null
+                : (details) => _showCopyMenu(
+                    context: context,
+                    position: details.globalPosition,
+                    message: contextData,
+                    onSelect: onEnterSelection,
+                  ),
+            onSecondaryTapDown: contextData == null
+                ? null
+                : (details) => _showCopyMenu(
+                    context: context,
+                    position: details.globalPosition,
+                    message: contextData,
+                    onSelect: onEnterSelection,
+                  ),
             child: DefaultTextStyle(
               style: Theme.of(
                 context,
               ).textTheme.bodyLarge!.copyWith(color: textColor),
-              child: switch (message.kind) {
-                ChatMessageKind.text when isSelectionMode => Text(
-                  message.text ?? '',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.copyWith(color: textColor),
-                ),
-                ChatMessageKind.text => SelectableText(
-                  message.text ?? '',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.copyWith(color: textColor),
-                ),
-                ChatMessageKind.attachment when attachment != null && attachment.fileType == FileType.image && hasImagePreview =>
-                  _ImageAttachmentCard(
-                    attachment: attachment,
-                    textColor: textColor,
-                    isSelectionMode: isSelectionMode,
-                    onClearSelection: onClearSelection,
-                    onToggleSelection: () => onToggleSelection(message.id),
-                    onEnterSelection: onEnterSelection,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      '${message.senderAlias}  ${_formatTime(message.sentAt)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: textColor.withValues(alpha: 0.72),
+                      ),
+                    ),
                   ),
-                ChatMessageKind.attachment when attachment != null => _AttachmentCard(
-                  attachment: attachment,
-                  textColor: textColor,
-                  isSelectionMode: isSelectionMode,
-                  onClearSelection: onClearSelection,
-                  onToggleSelection: () => onToggleSelection(message.id),
-                  onEnterSelection: onEnterSelection,
-                ),
-                _ => const SizedBox.shrink(),
-              },
+                  switch (message.kind) {
+                    ChatMessageKind.text when isSelectionMode => Text(
+                      message.text ?? '',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge!.copyWith(color: textColor),
+                    ),
+                    ChatMessageKind.text => SelectableText(
+                      message.text ?? '',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge!.copyWith(color: textColor),
+                    ),
+                    ChatMessageKind.attachment
+                        when attachment != null &&
+                            attachment.fileType == FileType.image &&
+                            hasImagePreview =>
+                      _ImageAttachmentCard(
+                        attachment: attachment,
+                        textColor: textColor,
+                        isSelectionMode: isSelectionMode,
+                        onClearSelection: onClearSelection,
+                        onToggleSelection: () => onToggleSelection(message.id),
+                        onEnterSelection: onEnterSelection,
+                      ),
+                    ChatMessageKind.attachment when attachment != null =>
+                      _AttachmentCard(
+                        attachment: attachment,
+                        textColor: textColor,
+                        isSelectionMode: isSelectionMode,
+                        onClearSelection: onClearSelection,
+                        onToggleSelection: () => onToggleSelection(message.id),
+                        onEnterSelection: onEnterSelection,
+                      ),
+                    _ => const SizedBox.shrink(),
+                  },
+                ],
+              ),
             ),
           ),
         ),
@@ -758,37 +827,78 @@ class _MessageBubble extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: crossAlign,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Text(
-              '${message.senderAlias}  ${_formatTime(message.sentAt)}',
-              style: Theme.of(context).textTheme.bodySmall,
+          if (isSelectionMode)
+            SizedBox(
+              width: 48,
+              child: Align(alignment: Alignment.centerLeft, child: checkbox),
             ),
-          ),
-          Row(
-            children: [
-              if (isSelectionMode)
-                SizedBox(
-                  width: 48,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: checkbox,
-                  ),
-                ),
-              Expanded(
-                child: Align(
-                  alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-                  child: bubble,
-                ),
+          Expanded(
+            child: Align(
+              alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: crossAlign,
+                children: [messageCell],
               ),
-            ],
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Color _messageUserColor(String senderFingerprint, ColorScheme scheme) {
+    final hue = _stableHue(senderFingerprint);
+    final saturation = scheme.brightness == Brightness.dark ? 0.30 : 0.42;
+    final lightness = scheme.brightness == Brightness.dark ? 0.28 : 0.86;
+    final userColor = HSLColor.fromAHSL(
+      1,
+      hue,
+      saturation,
+      lightness,
+    ).toColor();
+    return Color.alphaBlend(
+      userColor.withValues(
+        alpha: scheme.brightness == Brightness.dark ? 0.84 : 0.92,
+      ),
+      scheme.surface,
+    );
+  }
+
+  double _stableHue(String value) {
+    var hash = 0;
+    for (final codeUnit in value.codeUnits) {
+      hash = 0x1fffffff & (hash + codeUnit);
+      hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+      hash ^= hash >> 6;
+    }
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    hash ^= hash >> 11;
+    hash = 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+    return (hash % 360).toDouble();
+  }
+
+  Color _readableTextColor(Color background, ColorScheme scheme) {
+    final whiteContrast = _contrastRatio(Colors.white, background);
+    final blackContrast = _contrastRatio(Colors.black, background);
+    if (whiteContrast >= 4.5 || blackContrast >= 4.5) {
+      return whiteContrast >= blackContrast ? Colors.white : Colors.black;
+    }
+    return scheme.onSurface;
+  }
+
+  double _contrastRatio(Color foreground, Color background) {
+    final foregroundLuminance = foreground.computeLuminance();
+    final backgroundLuminance = background.computeLuminance();
+    final lighter = foregroundLuminance > backgroundLuminance
+        ? foregroundLuminance
+        : backgroundLuminance;
+    final darker = foregroundLuminance > backgroundLuminance
+        ? backgroundLuminance
+        : foregroundLuminance;
+    return (lighter + 0.05) / (darker + 0.05);
   }
 
   String _formatTime(int timestamp) {
@@ -802,10 +912,14 @@ class _MessageBubble extends StatelessWidget {
     switch (message.kind) {
       case ChatMessageKind.text:
         final text = message.text;
-        return text == null || text.isEmpty ? null : _MessageContextData.text(message.id, text);
+        return text == null || text.isEmpty
+            ? null
+            : _MessageContextData.text(message.id, text);
       case ChatMessageKind.attachment:
         final attachment = message.attachment;
-        return attachment == null ? null : _MessageContextData.attachment(attachment);
+        return attachment == null
+            ? null
+            : _MessageContextData.attachment(attachment);
     }
   }
 }
@@ -1065,7 +1179,8 @@ class _ImageAttachmentPreview extends StatelessWidget {
           thumbnailFile,
           fit: BoxFit.cover,
           gaplessPlayback: true,
-          errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined)),
+          errorBuilder: (_, __, ___) =>
+              const Center(child: Icon(Icons.broken_image_outlined)),
         );
       }
     }
@@ -1079,7 +1194,8 @@ class _ImageAttachmentPreview extends StatelessWidget {
     return Image.file(
       file,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined)),
+      errorBuilder: (_, __, ___) =>
+          const Center(child: Icon(Icons.broken_image_outlined)),
     );
   }
 }
@@ -1223,7 +1339,9 @@ File? _localAttachmentFileForFolder(_MessageContextData message) {
   }
 
   final localPath = message.attachment?.localPath;
-  if (localPath == null || localPath.isEmpty || localPath.startsWith('content://')) {
+  if (localPath == null ||
+      localPath.isEmpty ||
+      localPath.startsWith('content://')) {
     return null;
   }
 
@@ -1234,7 +1352,9 @@ File? _localAttachmentFileForFolder(_MessageContextData message) {
 Future<void> _copyMessageContext(_MessageContextData message) async {
   final attachment = message.attachment;
   final localPath = attachment?.localPath;
-  if (attachment != null && localPath != null && !localPath.startsWith('content://')) {
+  if (attachment != null &&
+      localPath != null &&
+      !localPath.startsWith('content://')) {
     final file = File(localPath);
     if (file.existsSync()) {
       final copiedFiles = await Pasteboard.writeFiles([localPath]);
@@ -1258,7 +1378,10 @@ Future<void> _copyMessageContext(_MessageContextData message) async {
 Future<void> _shareMessageContext(_MessageContextData message) async {
   final attachment = message.attachment;
   final localPath = attachment?.localPath;
-  if (attachment != null && localPath != null && !localPath.startsWith('content://') && File(localPath).existsSync()) {
+  if (attachment != null &&
+      localPath != null &&
+      !localPath.startsWith('content://') &&
+      File(localPath).existsSync()) {
     try {
       await SharePlus.instance.share(
         ShareParams(
@@ -1373,7 +1496,9 @@ class _MemberManagementSheet extends StatelessWidget {
       chatProvider.select((state) => state.members),
     );
     final nearbyDevicesState = context.watch(nearbyDevicesProvider);
-    final onlineNearbyDevices = nearbyDevicesState.allDevices.values.where((device) => device.ip != null).toList(growable: false);
+    final onlineNearbyDevices = nearbyDevicesState.allDevices.values
+        .where((device) => device.ip != null)
+        .toList(growable: false);
     final chatNotifier = context.ref.notifier(chatProvider);
     final onlineDevices = chatNotifier.onlineNonMemberDevices();
     return SafeArea(
@@ -1426,7 +1551,9 @@ class _MemberManagementSheet extends StatelessWidget {
                         subtitle: Text(member.ip ?? 'Offline'),
                         trailing: IconButton(
                           tooltip: 'Remove',
-                          onPressed: () => context.ref.notifier(chatProvider).removeMember(member.fingerprint),
+                          onPressed: () => context.ref
+                              .notifier(chatProvider)
+                              .removeMember(member.fingerprint),
                           icon: const Icon(Icons.person_remove_outlined),
                         ),
                       );
@@ -1454,7 +1581,9 @@ class _MemberManagementSheet extends StatelessWidget {
                         child: DeviceListTile(
                           device: device,
                           info: 'Tap to add',
-                          onTap: () => context.ref.notifier(chatProvider).addMember(device),
+                          onTap: () => context.ref
+                              .notifier(chatProvider)
+                              .addMember(device),
                         ),
                       );
                     }),
