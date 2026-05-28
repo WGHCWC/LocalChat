@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:common/api_route_builder.dart';
 import 'package:common/model/device.dart';
+import 'package:common/model/dto/file_dto.dart';
 import 'package:common/model/file_type.dart';
 import 'package:flutter/widgets.dart';
 import 'package:image/image.dart' as img;
@@ -27,6 +28,7 @@ import 'package:uuid/uuid.dart';
 
 final _logger = Logger('Chat');
 const _uuid = Uuid();
+const _pendingAttachmentDownloadTimeout = Duration(minutes: 2);
 
 final chatProvider = NotifierProvider<ChatNotifier, ChatState>((ref) {
   return ChatNotifier();
@@ -35,6 +37,7 @@ final chatProvider = NotifierProvider<ChatNotifier, ChatState>((ref) {
 class ChatNotifier extends Notifier<ChatState> {
   ChatDatabase? _database;
   RhttpClient? _client;
+  final Map<String, _PendingAttachmentDownload> _pendingAttachmentDownloads = {};
 
   @override
   ChatState init() {
@@ -279,10 +282,12 @@ class ChatNotifier extends Notifier<ChatState> {
 
     final requester = ref.read(deviceFullInfoProvider);
     final url = ApiRoute.chatAttachment.target(source);
+    _rememberPendingAttachmentDownload(attachment);
     try {
       await _client!.post(url, body: HttpBody.json({'attachmentId': attachment.remoteFileId, 'requester': _deviceToJson(requester)}));
       state = state.copyWith(errorMessage: null);
     } catch (e, st) {
+      _forgetPendingAttachmentDownload(attachment);
       _logger.warning('Attachment download request failed', e, st);
       _database!.updateAttachmentLocalPath(
         attachmentId: attachment.id,
@@ -413,6 +418,31 @@ class ChatNotifier extends Notifier<ChatState> {
     return exists;
   }
 
+  bool consumePendingAttachmentDownload({
+    required String senderFingerprint,
+    required Iterable<FileDto> files,
+  }) {
+    _prunePendingAttachmentDownloads();
+    final fileList = files.toList(growable: false);
+    if (fileList.length != 1) {
+      return false;
+    }
+
+    final file = fileList.single;
+    for (final entry in _pendingAttachmentDownloads.entries) {
+      final attachment = entry.value.attachment;
+      if (attachment.sourceFingerprint == senderFingerprint &&
+          attachment.fileName == file.fileName &&
+          attachment.size == file.size &&
+          attachment.fileType == file.fileType) {
+        _pendingAttachmentDownloads.remove(entry.key);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   Future<void> openLocalAttachment(BuildContext context, ChatAttachment attachment) async {
     final localPath = attachment.localPath;
     if (localPath == null) {
@@ -484,6 +514,26 @@ class ChatNotifier extends Notifier<ChatState> {
     return null;
   }
 
+  void _rememberPendingAttachmentDownload(ChatAttachment attachment) {
+    _pendingAttachmentDownloads[_pendingAttachmentKey(attachment)] = _PendingAttachmentDownload(
+      attachment: attachment,
+      requestedAt: DateTime.now(),
+    );
+  }
+
+  void _forgetPendingAttachmentDownload(ChatAttachment attachment) {
+    _pendingAttachmentDownloads.remove(_pendingAttachmentKey(attachment));
+  }
+
+  void _prunePendingAttachmentDownloads() {
+    final now = DateTime.now();
+    _pendingAttachmentDownloads.removeWhere((_, pending) => now.difference(pending.requestedAt) > _pendingAttachmentDownloadTimeout);
+  }
+
+  String _pendingAttachmentKey(ChatAttachment attachment) {
+    return '${attachment.sourceFingerprint}:${attachment.remoteFileId}';
+  }
+
   void _refreshFromDb() {
     final db = _database;
     if (db == null) {
@@ -513,6 +563,16 @@ class ChatNotifier extends Notifier<ChatState> {
     devices.sort((a, b) => a.alias.toLowerCase().compareTo(b.alias.toLowerCase()));
     return devices;
   }
+}
+
+class _PendingAttachmentDownload {
+  final ChatAttachment attachment;
+  final DateTime requestedAt;
+
+  const _PendingAttachmentDownload({
+    required this.attachment,
+    required this.requestedAt,
+  });
 }
 
 Map<String, dynamic> _deviceToJson(Device device) {
