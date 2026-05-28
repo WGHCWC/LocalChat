@@ -8,6 +8,7 @@ import 'package:localsend_app/provider/chat/chat_provider.dart';
 import 'package:localsend_app/util/file_size_helper.dart';
 import 'package:localsend_app/util/native/open_file.dart';
 import 'package:localsend_app/util/ui/snackbar.dart';
+import 'package:localsend_app/widget/custom_basic_appbar.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uri_content/uri_content.dart';
@@ -42,8 +43,8 @@ class _ChatImagePreviewPageState extends State<ChatImagePreviewPage> with Refena
     final hasLocalFile = _hasLocalFile(localPath);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(attachment.fileName, overflow: TextOverflow.ellipsis),
+      appBar: basicLocalSendAppbar(
+        attachment.fileName,
         actions: [
           IconButton(
             tooltip: 'Share',

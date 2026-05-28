@@ -50,7 +50,7 @@ class ChatShellDestination {
 class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool selectingMessages;
   final int selectedMessageCount;
-  final int memberCount;
+  final int onlineMemberCount;
   final bool syncing;
   final bool messagesEmpty;
   final List<ChatShellDestination> shellDestinations;
@@ -63,7 +63,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _ChatAppBar({
     required this.selectingMessages,
     required this.selectedMessageCount,
-    required this.memberCount,
+    required this.onlineMemberCount,
     required this.syncing,
     required this.messagesEmpty,
     required this.shellDestinations,
@@ -166,17 +166,10 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
             '$selectedMessageCount selected',
             overflow: TextOverflow.ellipsis,
           )
-        : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Chatroom', overflow: TextOverflow.ellipsis),
-              Text(
-                '$memberCount members',
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+        : Text(
+            '$onlineMemberCount online',
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium,
           );
 
     if (!isMacOs) {
@@ -374,7 +367,7 @@ class _ChatTabState extends State<ChatTab> with Refena {
       appBar: _ChatAppBar(
         selectingMessages: _selectingMessages,
         selectedMessageCount: _selectedMessageIds.length,
-        memberCount: chat.members.length,
+        onlineMemberCount: chat.members.where((member) => member.ip != null).length,
         syncing: chat.syncing,
         messagesEmpty: chat.messages.isEmpty,
         shellDestinations: widget.shellDestinations,
