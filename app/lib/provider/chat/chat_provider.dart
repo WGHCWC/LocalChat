@@ -24,8 +24,11 @@ import 'package:localsend_app/util/native/open_folder.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
 import 'package:localsend_app/util/rhttp.dart';
 import 'package:logging/logging.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:rhttp/rhttp.dart';
+import 'package:uri_content/uri_content.dart';
 import 'package:uuid/uuid.dart';
 
 final _logger = Logger('Chat');
@@ -39,8 +42,7 @@ final chatProvider = NotifierProvider<ChatNotifier, ChatState>((ref) {
 class ChatNotifier extends Notifier<ChatState> {
   ChatDatabase? _database;
   RhttpClient? _client;
-  final Map<String, _PendingAttachmentDownload> _pendingAttachmentDownloads =
-      {};
+  final Map<String, _PendingAttachmentDownload> _pendingAttachmentDownloads = {};
 
   @override
   ChatState init() {
@@ -64,9 +66,7 @@ class ChatNotifier extends Notifier<ChatState> {
 
   Future<void> addMember(Device device) async {
     await initialize();
-    if (device.ip == null ||
-        device.fingerprint == ref.read(deviceFullInfoProvider).fingerprint ||
-        _isChatMember(device.fingerprint)) {
+    if (device.ip == null || device.fingerprint == ref.read(deviceFullInfoProvider).fingerprint || _isChatMember(device.fingerprint)) {
       _refreshFromDb();
       return;
     }
@@ -77,8 +77,7 @@ class ChatNotifier extends Notifier<ChatState> {
 
   Future<void> removeMember(String fingerprint) async {
     await initialize();
-    if (fingerprint == ref.read(deviceFullInfoProvider).fingerprint ||
-        !_isChatMember(fingerprint)) {
+    if (fingerprint == ref.read(deviceFullInfoProvider).fingerprint || !_isChatMember(fingerprint)) {
       _refreshFromDb();
       return;
     }
@@ -136,12 +135,7 @@ class ChatNotifier extends Notifier<ChatState> {
     for (final file in files) {
       final messageId = _uuid.v4();
       final attachmentId = _uuid.v4();
-      Uint8List? thumbnail = file.thumbnail;
-      if (thumbnail == null &&
-          file.fileType == FileType.image &&
-          file.bytes != null) {
-        thumbnail = await _buildThumbnail(file.bytes!);
-      }
+      final localPath = file.path;
       final message = ChatMessage(
         id: messageId,
         roomId: defaultChatRoomId,
@@ -159,14 +153,17 @@ class ChatNotifier extends Notifier<ChatState> {
           fileType: file.fileType,
           sourceFingerprint: device.fingerprint,
           remoteFileId: attachmentId,
-          localPath: file.path,
-          thumbnail: thumbnail,
+          localPath: localPath,
+          thumbnailPath: null,
           downloadPending: false,
           downloadError: null,
           createdAt: now,
         ),
       );
       _database!.upsertMessage(message);
+      if (file.fileType == FileType.image && localPath != null) {
+        await _ensureThumbnailPath(localPath, attachmentId);
+      }
     }
     _refreshFromDb();
     await _notifyOnlineMembers();
@@ -233,41 +230,19 @@ class ChatNotifier extends Notifier<ChatState> {
           })
           .toList(growable: false);
       if (devices.isNotEmpty) {
-        await ref
-            .redux(nearbyDevicesProvider)
-            .dispatchAsync(StartFavoriteScan(devices: devices, https: https));
+        await ref.redux(nearbyDevicesProvider).dispatchAsync(StartFavoriteScan(devices: devices, https: https));
       }
     }
   }
 
   Future<void> receiveMessage(ChatMessage message) async {
     await initialize();
-    final attachment = message.attachment;
-    if (attachment != null && attachment.fileType == FileType.image) {
-      final localPath = attachment.localPath;
-      if (attachment.thumbnail == null && localPath != null) {
-        final thumbnail = await _buildThumbnailBytesFromFile(localPath);
-        if (thumbnail != null) {
-          _database!.upsertMessage(
-            message.copyWith(
-              attachment: attachment.copyWith(thumbnail: thumbnail),
-            ),
-          );
-          _refreshFromDb();
-          return;
-        }
-      }
-    }
     _database!.upsertMessage(message);
     _refreshFromDb();
   }
 
   Future<void> _backfillAttachmentLocalPathsFromHistory() async {
-    final history = ref
-        .read(persistenceProvider)
-        .getReceiveHistory()
-        .where((entry) => entry.path != null)
-        .toList(growable: false);
+    final history = ref.read(persistenceProvider).getReceiveHistory().where((entry) => entry.path != null).toList(growable: false);
     if (history.isEmpty) {
       return;
     }
@@ -296,16 +271,8 @@ class ChatNotifier extends Notifier<ChatState> {
         downloadPending: false,
         downloadError: null,
       );
-      if (attachment.fileType == FileType.image &&
-          attachment.thumbnail == null &&
-          !resolvedPath.startsWith('content://')) {
-        final thumbnail = await _buildThumbnailBytesFromFile(resolvedPath);
-        if (thumbnail != null) {
-          _database!.updateAttachmentThumbnail(
-            attachmentId: attachment.id,
-            thumbnail: thumbnail,
-          );
-        }
+      if (attachment.fileType == FileType.image) {
+        await _ensureThumbnailPath(resolvedPath, attachment.id);
       }
       updated = true;
     }
@@ -320,8 +287,7 @@ class ChatNotifier extends Notifier<ChatState> {
     List<ReceiveHistoryEntry> historyEntries,
   ) {
     for (final entry in historyEntries) {
-      if (entry.fileName != attachment.fileName ||
-          entry.fileSize != attachment.size) {
+      if (entry.fileName != attachment.fileName || entry.fileSize != attachment.size) {
         continue;
       }
       final path = entry.path;
@@ -389,13 +355,22 @@ class ChatNotifier extends Notifier<ChatState> {
     final url = ApiRoute.chatAttachment.target(source);
     _rememberPendingAttachmentDownload(attachment);
     try {
-      await _client!.post(
+      final response = await _client!.post(
         url,
         body: HttpBody.json({
           'attachmentId': attachment.remoteFileId,
           'requester': _deviceToJson(requester),
         }),
       );
+      if (response.statusCode >= 400) {
+        _database!.updateAttachmentLocalPath(
+          attachmentId: attachment.id,
+          localPath: null,
+          downloadError: response.body.isEmpty ? 'Attachment request failed.' : response.body,
+        );
+        _refreshFromDb();
+        return;
+      }
       state = state.copyWith(errorMessage: null);
     } catch (e, st) {
       _forgetPendingAttachmentDownload(attachment);
@@ -431,31 +406,59 @@ class ChatNotifier extends Notifier<ChatState> {
       downloadPending: false,
       downloadError: errorMessage,
     );
-    if (localPath != null &&
-        attachment.fileType == FileType.image &&
-        attachment.thumbnail == null &&
-        !localPath.startsWith('content://')) {
-      final thumbnail = await _buildThumbnailBytesFromFile(localPath);
-      if (thumbnail != null) {
-        _database!.updateAttachmentThumbnail(
-          attachmentId: attachment.id,
-          thumbnail: thumbnail,
-        );
-      }
+    if (localPath != null && attachment.fileType == FileType.image) {
+      await _ensureThumbnailPath(localPath, attachment.id);
     }
     _refreshFromDb();
   }
 
-  Future<Uint8List?> _buildThumbnailBytesFromFile(String path) async {
-    if (!path.startsWith('content://')) {
-      final file = File(path);
-      if (!file.existsSync()) {
+  Future<String?> _ensureThumbnailPath(String sourcePath, String attachmentId) async {
+    final existingPath = _database!.getAttachment(attachmentId)?.thumbnailPath;
+    if (_hasUsableLocalPath(existingPath)) {
+      return existingPath;
+    }
+    final thumbnailDir = Directory(p.join((await getApplicationSupportDirectory()).path, 'localsend', '.chat-thumbnails'));
+    if (!thumbnailDir.existsSync()) {
+      thumbnailDir.createSync(recursive: true);
+    }
+    final thumbnailPath = p.join(thumbnailDir.path, '$attachmentId.thumbcache');
+    final file = File(thumbnailPath);
+    if (file.existsSync()) {
+      _database!.updateAttachmentThumbnailPath(
+        attachmentId: attachmentId,
+        thumbnailPath: thumbnailPath,
+      );
+      return thumbnailPath;
+    }
+    final bytes = await _readImageBytes(sourcePath);
+    if (bytes == null) {
+      return null;
+    }
+    final thumbnail = await _buildThumbnail(bytes);
+    if (thumbnail == null) {
+      return null;
+    }
+    await file.writeAsBytes(thumbnail);
+    _database!.updateAttachmentThumbnailPath(
+      attachmentId: attachmentId,
+      thumbnailPath: thumbnailPath,
+    );
+    return thumbnailPath;
+  }
+
+  Future<Uint8List?> _readImageBytes(String path) async {
+    if (path.startsWith('content://')) {
+      try {
+        return await UriContent().from(Uri.parse(path));
+      } catch (_) {
         return null;
       }
-      final bytes = await file.readAsBytes();
-      return _buildThumbnail(bytes);
     }
-    return null;
+    final file = File(path);
+    if (!file.existsSync()) {
+      return null;
+    }
+    return file.readAsBytes();
   }
 
   Future<Uint8List?> _buildThumbnail(List<int> bytes) async {
@@ -487,9 +490,18 @@ class ChatNotifier extends Notifier<ChatState> {
       return false;
     }
 
-    final file = File(attachment.localPath!);
-    if (!file.existsSync()) {
-      return false;
+    final localPath = attachment.localPath!;
+    DateTime? lastModified;
+    DateTime? lastAccessed;
+    var size = attachment.size;
+    if (!localPath.startsWith('content://')) {
+      final file = File(localPath);
+      if (!file.existsSync()) {
+        return false;
+      }
+      size = await file.length();
+      lastModified = file.lastModifiedSync().toUtc();
+      lastAccessed = file.lastAccessedSync().toUtc();
     }
 
     await ref
@@ -500,13 +512,13 @@ class ChatNotifier extends Notifier<ChatState> {
             CrossFile(
               name: attachment.fileName,
               fileType: attachment.fileType,
-              size: await file.length(),
+              size: size,
               thumbnail: null,
               asset: null,
-              path: attachment.localPath,
+              path: localPath,
               bytes: null,
-              lastModified: file.lastModifiedSync().toUtc(),
-              lastAccessed: file.lastAccessedSync().toUtc(),
+              lastModified: lastModified,
+              lastAccessed: lastAccessed,
             ),
           ],
           background: true,
@@ -529,11 +541,7 @@ class ChatNotifier extends Notifier<ChatState> {
         current.localPath ??
         _resolveAttachmentPathFromHistory(
           current,
-          ref
-              .read(persistenceProvider)
-              .getReceiveHistory()
-              .where((entry) => entry.path != null)
-              .toList(growable: false),
+          ref.read(persistenceProvider).getReceiveHistory().where((entry) => entry.path != null).toList(growable: false),
         );
     if (!_hasUsableLocalPath(localPath)) {
       if (current.localPath != null && current.localPath!.isNotEmpty) {
@@ -547,26 +555,18 @@ class ChatNotifier extends Notifier<ChatState> {
       return null;
     }
 
-    if (localPath != current.localPath) {
+    if (current.downloadPending || current.downloadError != null) {
       _database!.updateAttachmentLocalPath(
         attachmentId: current.id,
         localPath: localPath,
         downloadPending: false,
         downloadError: null,
       );
-      if (current.fileType == FileType.image &&
-          current.thumbnail == null &&
-          !localPath!.startsWith('content://')) {
-        final thumbnail = await _buildThumbnailBytesFromFile(localPath);
-        if (thumbnail != null) {
-          _database!.updateAttachmentThumbnail(
-            attachmentId: current.id,
-            thumbnail: thumbnail,
-          );
-        }
-      }
-      _refreshFromDb();
     }
+    if (current.fileType == FileType.image) {
+      await _ensureThumbnailPath(localPath!, current.id);
+    }
+    _refreshFromDb();
 
     return _database!.getAttachment(current.id);
   }
@@ -619,9 +619,7 @@ class ChatNotifier extends Notifier<ChatState> {
 
     final file = File(localPath);
 
-    if (checkPlatformIsDesktop() &&
-        !localPath.startsWith('content://') &&
-        file.existsSync()) {
+    if (checkPlatformIsDesktop() && !localPath.startsWith('content://') && file.existsSync()) {
       await openFolder(
         folderPath: file.parent.path,
         fileName: localPath.fileName,
@@ -661,10 +659,7 @@ class ChatNotifier extends Notifier<ChatState> {
   }
 
   Future<void> _notifyOnlineMembers() async {
-    final members = _database!
-        .getMembers()
-        .map((member) => member.fingerprint)
-        .toSet();
+    final members = _database!.getMembers().map((member) => member.fingerprint).toSet();
     final sender = ref.read(deviceFullInfoProvider);
     for (final device in ref.read(nearbyDevicesProvider).allDevices.values) {
       if (device.ip == null || !members.contains(device.fingerprint)) {
@@ -726,9 +721,7 @@ class ChatNotifier extends Notifier<ChatState> {
   void _prunePendingAttachmentDownloads() {
     final now = DateTime.now();
     _pendingAttachmentDownloads.removeWhere(
-      (_, pending) =>
-          now.difference(pending.requestedAt) >
-          _pendingAttachmentDownloadTimeout,
+      (_, pending) => now.difference(pending.requestedAt) > _pendingAttachmentDownloadTimeout,
     );
   }
 
@@ -754,18 +747,14 @@ class ChatNotifier extends Notifier<ChatState> {
   }
 
   List<Device> onlineNonMemberDevices() {
-    final memberFingerprints =
-        _database?.getMembers().map((member) => member.fingerprint).toSet() ??
-        {};
+    final memberFingerprints = _database?.getMembers().map((member) => member.fingerprint).toSet() ?? {};
     final seenFingerprints = <String>{};
     final devices = <Device>[];
     for (final device in ref.read(nearbyDevicesProvider).allDevices.values) {
-      if (device.ip == null ||
-          device.fingerprint == ref.read(deviceFullInfoProvider).fingerprint) {
+      if (device.ip == null || device.fingerprint == ref.read(deviceFullInfoProvider).fingerprint) {
         continue;
       }
-      if (memberFingerprints.contains(device.fingerprint) ||
-          !seenFingerprints.add(device.fingerprint)) {
+      if (memberFingerprints.contains(device.fingerprint) || !seenFingerprints.add(device.fingerprint)) {
         continue;
       }
       devices.add(device);

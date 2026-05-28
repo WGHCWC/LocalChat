@@ -1,9 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:common/model/device.dart';
-import 'package:common/model/file_type.dart';
-import 'package:image/image.dart' as img;
 import 'package:localsend_app/model/chat/chat_models.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -68,19 +65,18 @@ class ChatDatabase {
         source_fingerprint TEXT NOT NULL,
         remote_file_id TEXT NOT NULL,
         local_path TEXT,
-        thumbnail BLOB,
+        thumbnail_path TEXT,
         created_at INTEGER NOT NULL,
         FOREIGN KEY(message_id) REFERENCES chat_messages(id) ON DELETE CASCADE
       );
     ''');
-    _addColumnIfMissing('chat_attachments', 'thumbnail', 'BLOB');
+    _addColumnIfMissing('chat_attachments', 'thumbnail_path', 'TEXT');
     _addColumnIfMissing(
       'chat_attachments',
       'download_pending',
       'INTEGER NOT NULL DEFAULT 0',
     );
     _addColumnIfMissing('chat_attachments', 'download_error', 'TEXT');
-    _backfillImageThumbnails();
     _db.execute(
       'CREATE INDEX IF NOT EXISTS idx_chat_messages_sent_at ON chat_messages(sent_at);',
     );
@@ -99,76 +95,41 @@ class ChatDatabase {
   void updateAttachmentLocalPath({
     required String attachmentId,
     required String? localPath,
+    String? thumbnailPath,
     bool downloadPending = false,
     String? downloadError,
   }) {
     _db.execute(
       '''
       UPDATE chat_attachments
-      SET local_path = ?, download_pending = ?, download_error = ?
+      SET local_path = ?, thumbnail_path = COALESCE(?, thumbnail_path), download_pending = ?, download_error = ?
       WHERE id = ?;
       ''',
-      [localPath, downloadPending ? 1 : 0, downloadError, attachmentId],
+      [
+        localPath,
+        thumbnailPath,
+        downloadPending ? 1 : 0,
+        downloadError,
+        attachmentId,
+      ],
     );
   }
 
-  void updateAttachmentThumbnail({
+  void updateAttachmentThumbnailPath({
     required String attachmentId,
-    required Uint8List? thumbnail,
+    required String thumbnailPath,
   }) {
     _db.execute(
       '''
       UPDATE chat_attachments
-      SET thumbnail = ?
+      SET thumbnail_path = ?
       WHERE id = ?;
       ''',
-      [thumbnail, attachmentId],
+      [
+        thumbnailPath,
+        attachmentId,
+      ],
     );
-  }
-
-  void _backfillImageThumbnails() {
-    final rows = _db.select(
-      '''
-      SELECT id, local_path
-      FROM chat_attachments
-      WHERE file_type = ?
-        AND thumbnail IS NULL
-        AND local_path IS NOT NULL;
-      ''',
-      [FileType.image.wireName],
-    );
-    for (final row in rows) {
-      final path = row['local_path'] as String?;
-      if (path == null || path.startsWith('content://')) {
-        continue;
-      }
-      final file = File(path);
-      if (!file.existsSync()) {
-        continue;
-      }
-      try {
-        final bytes = file.readAsBytesSync();
-        final thumbnail = _buildThumbnail(bytes);
-        if (thumbnail != null) {
-          _db.execute(
-            'UPDATE chat_attachments SET thumbnail = ? WHERE id = ?;',
-            [thumbnail, row['id']],
-          );
-        }
-      } catch (_) {
-        // Leave the row as-is if thumbnail generation fails.
-      }
-    }
-  }
-
-  Uint8List? _buildThumbnail(List<int> bytes) {
-    final image = img.decodeImage(Uint8List.fromList(bytes));
-    if (image == null) {
-      return null;
-    }
-    final width = image.width > 240 ? 240 : image.width;
-    final thumbnail = img.copyResize(image, width: width);
-    return Uint8List.fromList(img.encodePng(thumbnail));
   }
 
   ChatAttachment? findAttachmentForReceivedFile({
@@ -187,6 +148,7 @@ class ChatDatabase {
         source_fingerprint,
         remote_file_id,
         local_path,
+        thumbnail_path,
         download_pending,
         download_error,
         created_at
@@ -308,7 +270,7 @@ class ChatDatabase {
         a.source_fingerprint,
         a.remote_file_id,
         a.local_path,
-        a.thumbnail,
+        a.thumbnail_path,
         a.download_pending,
         a.download_error,
         a.created_at
@@ -344,7 +306,7 @@ class ChatDatabase {
         a.source_fingerprint,
         a.remote_file_id,
         a.local_path,
-        a.thumbnail,
+        a.thumbnail_path,
         a.download_pending,
         a.download_error,
         a.created_at
@@ -378,7 +340,7 @@ class ChatDatabase {
         source_fingerprint,
         remote_file_id,
         local_path,
-        thumbnail,
+        thumbnail_path,
         download_pending,
         download_error,
         created_at
@@ -416,9 +378,20 @@ class ChatDatabase {
     if (attachment != null) {
       _db.execute(
         '''
-        INSERT OR IGNORE INTO chat_attachments (
-          id, message_id, file_name, size, file_type, source_fingerprint, remote_file_id, local_path, thumbnail, download_pending, download_error, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO chat_attachments (
+          id, message_id, file_name, size, file_type, source_fingerprint, remote_file_id, local_path, thumbnail_path, download_pending, download_error, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          file_name = excluded.file_name,
+          size = excluded.size,
+          file_type = excluded.file_type,
+          source_fingerprint = excluded.source_fingerprint,
+          remote_file_id = excluded.remote_file_id,
+          local_path = COALESCE(excluded.local_path, chat_attachments.local_path),
+          thumbnail_path = COALESCE(excluded.thumbnail_path, chat_attachments.thumbnail_path),
+          download_pending = excluded.download_pending,
+          download_error = excluded.download_error,
+          created_at = excluded.created_at;
         ''',
         [
           attachment.id,
@@ -429,7 +402,7 @@ class ChatDatabase {
           attachment.sourceFingerprint,
           attachment.remoteFileId,
           attachment.localPath,
-          attachment.thumbnail,
+          attachment.thumbnailPath,
           attachment.downloadPending ? 1 : 0,
           attachment.downloadError,
           attachment.createdAt,
@@ -481,7 +454,7 @@ class ChatDatabase {
       sourceFingerprint: row['source_fingerprint'] as String,
       remoteFileId: row['remote_file_id'] as String,
       localPath: row['local_path'] as String?,
-      thumbnail: row['thumbnail'] as Uint8List?,
+      thumbnailPath: row['thumbnail_path'] as String?,
       downloadPending: _asInt(row['download_pending'] ?? 0) == 1,
       downloadError: row['download_error'] as String?,
       createdAt: _asInt(row['created_at']),
