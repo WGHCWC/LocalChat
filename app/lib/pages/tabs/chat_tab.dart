@@ -46,6 +46,10 @@ class _ChatTabState extends State<ChatTab> with Refena {
     super.dispose();
   }
 
+  void _clearMessageSelection() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final chat = context.watch(chatProvider);
@@ -157,18 +161,29 @@ class _ChatTabState extends State<ChatTab> with Refena {
                         );
                       },
                     )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
-                      itemCount: chat.messages.length,
-                      itemBuilder: (context, index) {
-                        final message = chat.messages[index];
-                        final isMine = message.senderFingerprint == myFingerprint;
-                        return _MessageBubble(
-                          message: message,
-                          isMine: isMine,
-                        );
-                      },
+                  : GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: _clearMessageSelection,
+                      child: NotificationListener<ScrollStartNotification>(
+                        onNotification: (_) {
+                          _clearMessageSelection();
+                          return false;
+                        },
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
+                          itemCount: chat.messages.length,
+                          itemBuilder: (context, index) {
+                            final message = chat.messages[index];
+                            final isMine = message.senderFingerprint == myFingerprint;
+                            return _MessageBubble(
+                              message: message,
+                              isMine: isMine,
+                              onClearSelection: _clearMessageSelection,
+                            );
+                          },
+                        ),
+                      ),
                     ),
             ),
           ),
@@ -281,8 +296,8 @@ class _DesktopChatDropTargetState extends State<_DesktopChatDropTarget> {
                           Text(
                             _sending ? 'Sending files...' : 'Drop files to send',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: scheme.onPrimaryContainer,
-                                ),
+                              color: scheme.onPrimaryContainer,
+                            ),
                           ),
                         ],
                       ),
@@ -354,10 +369,12 @@ class _EmptyConversation extends StatelessWidget {
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final bool isMine;
+  final VoidCallback onClearSelection;
 
   const _MessageBubble({
     required this.message,
     required this.isMine,
+    required this.onClearSelection,
   });
 
   @override
@@ -388,6 +405,7 @@ class _MessageBubble extends StatelessWidget {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: GestureDetector(
+                  onTap: onClearSelection,
                   onSecondaryTapDown: copyText == null
                       ? null
                       : (details) => _showCopyMenu(
@@ -419,6 +437,7 @@ class _MessageBubble extends StatelessWidget {
                           ChatMessageKind.attachment when attachment != null => _AttachmentCard(
                             attachment: attachment,
                             textColor: textColor,
+                            onClearSelection: onClearSelection,
                           ),
                           _ => const SizedBox.shrink(),
                         },
@@ -456,10 +475,12 @@ class _MessageBubble extends StatelessWidget {
 class _AttachmentCard extends StatelessWidget {
   final ChatAttachment attachment;
   final Color textColor;
+  final VoidCallback onClearSelection;
 
   const _AttachmentCard({
     required this.attachment,
     required this.textColor,
+    required this.onClearSelection,
   });
 
   @override
@@ -472,7 +493,10 @@ class _AttachmentCard extends StatelessWidget {
         value: copyText,
       ),
       child: InkWell(
-        onTap: () => context.ref.notifier(chatProvider).requestAttachmentDownload(context, attachment),
+        onTap: () {
+          onClearSelection();
+          unawaited(context.ref.notifier(chatProvider).requestAttachmentDownload(context, attachment));
+        },
         borderRadius: BorderRadius.circular(6),
         child: Padding(
           padding: const EdgeInsets.all(2),
