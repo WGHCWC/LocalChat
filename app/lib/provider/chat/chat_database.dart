@@ -74,11 +74,19 @@ class ChatDatabase {
       );
     ''');
     _addColumnIfMissing('chat_attachments', 'thumbnail', 'BLOB');
-    _addColumnIfMissing('chat_attachments', 'download_pending', 'INTEGER NOT NULL DEFAULT 0');
+    _addColumnIfMissing(
+      'chat_attachments',
+      'download_pending',
+      'INTEGER NOT NULL DEFAULT 0',
+    );
     _addColumnIfMissing('chat_attachments', 'download_error', 'TEXT');
     _backfillImageThumbnails();
-    _db.execute('CREATE INDEX IF NOT EXISTS idx_chat_messages_sent_at ON chat_messages(sent_at);');
-    _db.execute('CREATE INDEX IF NOT EXISTS idx_chat_attachments_message_id ON chat_attachments(message_id);');
+    _db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_chat_messages_sent_at ON chat_messages(sent_at);',
+    );
+    _db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_chat_attachments_message_id ON chat_attachments(message_id);',
+    );
   }
 
   void _addColumnIfMissing(String table, String column, String definition) {
@@ -100,12 +108,7 @@ class ChatDatabase {
       SET local_path = ?, download_pending = ?, download_error = ?
       WHERE id = ?;
       ''',
-      [
-        localPath,
-        downloadPending ? 1 : 0,
-        downloadError,
-        attachmentId,
-      ],
+      [localPath, downloadPending ? 1 : 0, downloadError, attachmentId],
     );
   }
 
@@ -119,10 +122,7 @@ class ChatDatabase {
       SET thumbnail = ?
       WHERE id = ?;
       ''',
-      [
-        thumbnail,
-        attachmentId,
-      ],
+      [thumbnail, attachmentId],
     );
   }
 
@@ -197,11 +197,7 @@ class ChatDatabase {
       ORDER BY created_at DESC
       LIMIT 1;
       ''',
-      [
-        sourceFingerprint,
-        fileName,
-        size,
-      ],
+      [sourceFingerprint, fileName, size],
     );
     if (rows.isEmpty) {
       return null;
@@ -210,7 +206,9 @@ class ChatDatabase {
   }
 
   List<ChatMember> getMembers() {
-    final rows = _db.select('SELECT * FROM chat_members ORDER BY alias COLLATE NOCASE;');
+    final rows = _db.select(
+      'SELECT * FROM chat_members ORDER BY alias COLLATE NOCASE;',
+    );
     return rows.map(_memberFromRow).toList(growable: false);
   }
 
@@ -246,11 +244,49 @@ class ChatDatabase {
   }
 
   void deleteMember(String fingerprint) {
-    _db.execute('DELETE FROM chat_members WHERE fingerprint = ?;', [fingerprint]);
+    _db.execute('DELETE FROM chat_members WHERE fingerprint = ?;', [
+      fingerprint,
+    ]);
+  }
+
+  void deleteMessagesByIds(Iterable<String> messageIds) {
+    final ids = messageIds.toSet();
+    if (ids.isEmpty) {
+      return;
+    }
+
+    _db.execute('BEGIN TRANSACTION;');
+    try {
+      for (final args in _chunks(ids.toList(growable: false), 900)) {
+        final placeholders = List.filled(args.length, '?').join(', ');
+        _db.execute(
+          'DELETE FROM chat_attachments WHERE message_id IN ($placeholders);',
+          args,
+        );
+        _db.execute(
+          'DELETE FROM chat_messages WHERE id IN ($placeholders);',
+          args,
+        );
+      }
+      _db.execute('COMMIT;');
+    } catch (_) {
+      _db.execute('ROLLBACK;');
+      rethrow;
+    }
+  }
+
+  Iterable<List<T>> _chunks<T>(List<T> values, int size) sync* {
+    for (var start = 0; start < values.length; start += size) {
+      final end = start + size > values.length ? values.length : start + size;
+      yield values.sublist(start, end);
+    }
   }
 
   void updateMemberLastSync(String fingerprint, int lastSyncAt) {
-    _db.execute('UPDATE chat_members SET last_sync_at = ? WHERE fingerprint = ?;', [lastSyncAt, fingerprint]);
+    _db.execute(
+      'UPDATE chat_members SET last_sync_at = ? WHERE fingerprint = ?;',
+      [lastSyncAt, fingerprint],
+    );
   }
 
   List<ChatMessage> getMessages({String roomId = defaultChatRoomId}) {
@@ -286,7 +322,10 @@ class ChatDatabase {
     return rows.map(_messageFromRow).toList(growable: false);
   }
 
-  List<ChatMessage> getMessagesNewerThan(int sentAt, {String roomId = defaultChatRoomId}) {
+  List<ChatMessage> getMessagesNewerThan(
+    int sentAt, {
+    String roomId = defaultChatRoomId,
+  }) {
     final rows = _db.select(
       '''
       SELECT
@@ -320,7 +359,10 @@ class ChatDatabase {
   }
 
   int getMaxSentAt({String roomId = defaultChatRoomId}) {
-    final rows = _db.select('SELECT COALESCE(MAX(sent_at), 0) AS max_sent_at FROM chat_messages WHERE room_id = ?;', [roomId]);
+    final rows = _db.select(
+      'SELECT COALESCE(MAX(sent_at), 0) AS max_sent_at FROM chat_messages WHERE room_id = ?;',
+      [roomId],
+    );
     return _asInt(rows.first['max_sent_at']);
   }
 
