@@ -1,3 +1,4 @@
+import 'package:common/constants.dart';
 import 'package:common/model/device.dart';
 import 'package:common/model/file_type.dart';
 
@@ -56,13 +57,16 @@ class ChatMember {
   });
 
   factory ChatMember.fromDevice(Device device) {
+    final normalizedVersion = device.version.trim().isEmpty
+        ? fallbackProtocolVersion
+        : device.version.trim();
     return ChatMember(
       fingerprint: device.fingerprint,
       alias: device.alias,
       ip: device.ip,
       port: device.port,
       https: device.https,
-      version: device.version,
+      version: normalizedVersion,
       deviceModel: device.deviceModel,
       deviceType: device.deviceType,
       addedAt: DateTime.now().toUtc().millisecondsSinceEpoch,

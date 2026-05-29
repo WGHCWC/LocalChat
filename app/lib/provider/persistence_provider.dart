@@ -90,6 +90,7 @@ const _deviceType = 'ls_device_type';
 const _deviceModel = 'ls_device_model';
 const _shareViaLinkAutoAccept = 'ls_share_via_link_auto_accept';
 const _advancedSettingsKey = 'ls_advanced_settings';
+const _windowsLeftActionBar = 'ls_windows_left_action_bar';
 
 final persistenceProvider = Provider<PersistenceService>((ref) {
   throw Exception('persistenceProvider not initialized');
@@ -409,6 +410,14 @@ class PersistenceService {
 
   Future<void> setAdvancedSettingsEnabled(bool isEnabled) async {
     await _prefs.setBool(_advancedSettingsKey, isEnabled);
+  }
+
+  bool getWindowsLeftActionBar() {
+    return _prefs.getBool(_windowsLeftActionBar) ?? true;
+  }
+
+  Future<void> setWindowsLeftActionBar(bool enabled) async {
+    await _prefs.setBool(_windowsLeftActionBar, enabled);
   }
 
   bool isQuickSave() {

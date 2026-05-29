@@ -131,6 +131,15 @@ class SettingsTab extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (checkPlatform([TargetPlatform.windows]))
+                            _BooleanEntry(
+                              label: 'Windows app bar left actions',
+                              value: vm.settings.windowsLeftActionBar,
+                              onChanged: (b) async {
+                                await ref.notifier(settingsProvider).setWindowsLeftActionBar(b);
+                              },
+                              helpMessage: t.general.restart,
+                            ),
                         ],
                         if (vm.advanced && checkPlatform([TargetPlatform.windows])) ...[
                           _BooleanEntry(
@@ -637,18 +646,20 @@ class _BooleanEntry extends StatelessWidget {
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final String? helpMessage;
 
   const _BooleanEntry({
     required this.label,
     required this.value,
     required this.onChanged,
+    this.helpMessage,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return _SettingsEntry(
-      label: label,
+      label: helpMessage == null ? label : '$label (${helpMessage!})',
       child: Stack(
         children: [
           Container(

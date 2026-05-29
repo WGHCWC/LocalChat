@@ -14,8 +14,6 @@ import 'package:localsend_app/model/cross_file.dart';
 import 'package:localsend_app/model/send_mode.dart';
 import 'package:localsend_app/model/state/send/send_session_state.dart';
 import 'package:localsend_app/model/state/send/sending_file.dart';
-import 'package:localsend_app/pages/home_page.dart';
-import 'package:localsend_app/pages/progress_page.dart';
 import 'package:localsend_app/pages/send_page.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
 import 'package:localsend_app/provider/http_provider.dart';
@@ -280,12 +278,9 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
         ),
       );
 
-      if (state[sessionId]?.background == false) {
-        // ignore: use_build_context_synchronously, unawaited_futures
-        Routerino.context.pushRootImmediately(() => const HomePage(initialTab: HomeTab.send, appStart: false));
+      if (state[sessionId]?.background == true) {
+        closeSession(sessionId);
       }
-
-      closeSession(sessionId);
       return SessionStatus.finished;
     }
 
@@ -293,22 +288,6 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
       for (final file in requestState.files.values)
         file.file.id: fileMap.containsKey(file.file.id) ? file.copyWith(token: fileMap[file.file.id]) : file.copyWith(status: FileStatus.skipped),
     };
-
-    if (state[sessionId]?.background == false) {
-      final background = ref.read(settingsProvider).sendMode == SendMode.multiple;
-
-      // ignore: use_build_context_synchronously, unawaited_futures
-      Routerino.context.pushAndRemoveUntil(
-        removeUntil: HomePage,
-        transition: RouterinoTransition.fade(),
-        // immediately is not possible: https://github.com/flutter/flutter/issues/121910
-        builder: () => ProgressPage(
-          showAppBar: background,
-          closeSessionOnClose: !background,
-          sessionId: sessionId,
-        ),
-      );
-    }
 
     state = state.updateSession(
       sessionId: sessionId,
@@ -529,7 +508,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
     _cancelRunningRequests(sessionState);
 
     if (remoteSessionId == null) {
-      closeSession(sessionId);
+      closeSession(sessionId, force: true);
       return;
     }
 
@@ -551,7 +530,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
     }
 
     // finally, close session locally
-    closeSession(sessionId);
+    closeSession(sessionId, force: true);
   }
 
   void cancelSessionByReceiver(String sessionId) {
@@ -584,9 +563,24 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
   }
 
   /// Closes the session
-  void closeSession(String sessionId) {
+  void closeSession(String sessionId, {bool force = false}) {
     final sessionState = state[sessionId];
     if (sessionState == null) {
+      return;
+    }
+    if (!force &&
+        sessionState.background == false &&
+        const {
+          SessionStatus.waiting,
+          SessionStatus.sending,
+          SessionStatus.finished,
+          SessionStatus.finishedWithErrors,
+          SessionStatus.declined,
+          SessionStatus.recipientBusy,
+          SessionStatus.tooManyAttempts,
+          SessionStatus.canceledByReceiver,
+          SessionStatus.canceledBySender,
+        }.contains(sessionState.status)) {
       return;
     }
     state = state.removeSession(ref, sessionId);

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:common/api_route_builder.dart';
+import 'package:common/constants.dart';
 import 'package:common/model/device.dart';
 import 'package:common/model/dto/file_dto.dart';
 import 'package:common/model/file_type.dart';
@@ -57,25 +58,47 @@ class ChatNotifier extends Notifier<ChatState> {
       return;
     }
 
-    _database ??= await ChatDatabase.open();
-    _client ??= createRhttpClient(
-      const Duration(seconds: 10),
-      ref.read(securityProvider),
-    );
-    _refreshFromDb();
-    await _backfillAttachmentLocalPathsFromHistory();
-    state = state.copyWith(initialized: true);
+    try {
+      _database ??= await ChatDatabase.open();
+      _client ??= createRhttpClient(
+        const Duration(seconds: 10),
+        ref.read(securityProvider),
+      );
+      _refreshFromDb();
+      await _backfillAttachmentLocalPathsFromHistory();
+      state = state.copyWith(initialized: true, errorMessage: null);
+    } catch (e, st) {
+      _logger.warning('Failed to initialize chat storage', e, st);
+      state = state.copyWith(errorMessage: 'Failed to initialize chat storage: $e');
+      rethrow;
+    }
   }
 
-  Future<void> addMember(Device device) async {
-    await initialize();
-    if (device.ip == null || device.fingerprint == ref.read(deviceFullInfoProvider).fingerprint || _isChatMember(device.fingerprint)) {
+  Future<bool> addMember(Device device) async {
+    try {
+      await initialize();
+      if (device.ip == null || device.fingerprint.trim().isEmpty) {
+        state = state.copyWith(errorMessage: 'This device cannot be added yet because its network identity is incomplete.');
+        return false;
+      }
+      if (device.fingerprint == ref.read(deviceFullInfoProvider).fingerprint || _isChatMember(device.fingerprint)) {
+        _refreshFromDb();
+        return false;
+      }
+      final member = _normalizeChatMember(device);
+      _database!.upsertMember(member);
       _refreshFromDb();
-      return;
+      await refreshOnlineMembers();
+      return true;
+    } catch (e, st) {
+      _logger.warning(
+        'Failed to add chat member ${device.alias} (${device.fingerprint})',
+        e,
+        st,
+      );
+      state = state.copyWith(errorMessage: 'Failed to add user ${device.alias}: $e');
+      return false;
     }
-    _database!.upsertMember(ChatMember.fromDevice(device));
-    _refreshFromDb();
-    await refreshOnlineMembers();
   }
 
   Future<void> removeMember(String fingerprint) async {
@@ -303,7 +326,7 @@ class ChatNotifier extends Notifier<ChatState> {
       return;
     }
 
-    _database!.upsertMember(ChatMember.fromDevice(sender));
+    _database!.upsertMember(_normalizeChatMember(sender));
     try {
       await _syncAndRecord(sender, _database!.getSyncSnapshotSentAt());
       _refreshFromDb();
@@ -733,6 +756,15 @@ class ChatNotifier extends Notifier<ChatState> {
 
   String _pendingAttachmentKey(ChatAttachment attachment) {
     return '${attachment.sourceFingerprint}:${attachment.remoteFileId}';
+  }
+
+  ChatMember _normalizeChatMember(Device device) {
+    final alias = device.alias.trim().isEmpty ? 'Unknown device' : device.alias.trim();
+    final version = device.version.trim().isEmpty ? fallbackProtocolVersion : device.version.trim();
+    return ChatMember.fromDevice(device).copyWith(
+      alias: alias,
+      version: version,
+    );
   }
 
   void _refreshFromDb() {

@@ -35,11 +35,13 @@ class ProgressPage extends StatefulWidget {
   final bool showAppBar;
   final bool closeSessionOnClose;
   final String sessionId;
+  final bool autoExitOnFinish;
 
   const ProgressPage({
     required this.showAppBar,
     required this.closeSessionOnClose,
     required this.sessionId,
+    this.autoExitOnFinish = true,
   });
 
   @override
@@ -89,7 +91,7 @@ class _ProgressPageState extends State<ProgressPage> with Refena {
         }
       });
 
-      if (ref.read(settingsProvider).autoFinish) {
+      if (widget.autoExitOnFinish && ref.read(settingsProvider).autoFinish) {
         _finishTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
           final finished =
               ref.read(serverProvider)?.session?.files.values.map((e) => e.status).isFinishedOrSkipped ??
@@ -160,7 +162,7 @@ class _ProgressPageState extends State<ProgressPage> with Refena {
         if (sendState.status == SessionStatus.sending) {
           ref.notifier(sendProvider).cancelSession(widget.sessionId);
         } else {
-          ref.notifier(sendProvider).closeSession(widget.sessionId);
+          ref.notifier(sendProvider).closeSession(widget.sessionId, force: true);
         }
       }
     }
