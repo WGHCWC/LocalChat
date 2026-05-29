@@ -9,17 +9,18 @@ import 'package:common/src/isolate/dto/isolate_task_result.dart';
 import 'package:common/src/isolate/dto/send_to_isolate_data.dart';
 import 'package:common/src/task/upload/http_upload.dart';
 import 'package:common/util/stream.dart';
+import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:refena/refena.dart';
+
+final _logger = Logger('HttpUploadIsolate');
 
 sealed class BaseHttpUploadTask {}
 
 class HttpUploadSetContentStreamResolverTask implements BaseHttpUploadTask {
   final UriContentStreamResolver resolver;
 
-  HttpUploadSetContentStreamResolverTask({
-    required this.resolver,
-  });
+  HttpUploadSetContentStreamResolverTask({required this.resolver});
 }
 
 class HttpUploadTask implements BaseHttpUploadTask {
@@ -79,15 +80,19 @@ Future<void> setupHttpUploadIsolate(
     handler: (ref, task) async {
       final HttpUploadTask uploadTask;
       switch (task.data) {
-        case HttpUploadSetContentStreamResolverTask task:
+        case HttpUploadSetContentStreamResolverTask resolverTask:
           final rootIsolateToken = ref.read(syncProvider).rootIsolateToken;
-          task.resolver.init(
-            rootIsolateToken: rootIsolateToken,
-          );
-          _uriContentStreamResolver = task.resolver;
+          resolverTask.resolver.init(rootIsolateToken: rootIsolateToken);
+          _uriContentStreamResolver = resolverTask.resolver;
           return;
-        case HttpUploadTask task:
-          uploadTask = task;
+        case HttpUploadTask httpUploadTask:
+          uploadTask = httpUploadTask;
+          _logger.info(
+            'Upload task received: taskId=${task.id}, target=${_debugDevice(uploadTask.device)}, '
+            'remoteSessionId=${uploadTask.remoteSessionId}, fileId=${uploadTask.fileId}, '
+            'tokenLength=${uploadTask.remoteFileToken.length}, filePath=${uploadTask.filePath}, '
+            'hasBytes=${uploadTask.fileBytes != null}, mime=${uploadTask.mime}, fileSize=${uploadTask.fileSize}',
+          );
           break;
         case HttpUploadCancelTask task:
           final cancelToken = ref.read(_cancelTokenProvider)[task.taskId];
@@ -97,19 +102,28 @@ Future<void> setupHttpUploadIsolate(
       }
 
       final Stream<List<int>>? fileStream = uploadTask.filePath != null
-          ? _uriContentStreamResolver != null && uploadTask.filePath!.startsWith('content://')
-              ? _uriContentStreamResolver!.resolve(Uri.parse(uploadTask.filePath!))
-              : File(uploadTask.filePath!).openRead()
+          ? _uriContentStreamResolver != null &&
+                    uploadTask.filePath!.startsWith('content://')
+                ? _uriContentStreamResolver!.resolve(
+                    Uri.parse(uploadTask.filePath!),
+                  )
+                : File(uploadTask.filePath!).openRead()
           : null;
 
-      final (streamController, subscription) = fileStream?.digested() ?? (null, null);
+      final (streamController, subscription) =
+          fileStream?.digested() ?? (null, null);
 
       try {
         final cancelToken = CustomCancelToken();
         ref.read(_cancelTokenProvider).putIfAbsent(task.id, () => cancelToken);
+        _logger.info('Upload task ${task.id} starting HTTP upload.');
 
-        await ref.read(httpUploadProvider).upload(
-              stream: streamController?.stream ?? Stream.fromIterable([uploadTask.fileBytes!]),
+        await ref
+            .read(httpUploadProvider)
+            .upload(
+              stream:
+                  streamController?.stream ??
+                  Stream.fromIterable([uploadTask.fileBytes!]),
               contentLength: uploadTask.fileSize,
               contentType: uploadTask.mime,
               target: uploadTask.device,
@@ -117,22 +131,20 @@ Future<void> setupHttpUploadIsolate(
               fileId: uploadTask.fileId,
               token: uploadTask.remoteFileToken,
               onSendProgress: (progress) {
-                sendToMain(IsolateTaskStreamResult.event(
-                  id: task.id,
-                  data: progress,
-                ));
+                sendToMain(
+                  IsolateTaskStreamResult.event(id: task.id, data: progress),
+                );
               },
               cancelToken: cancelToken,
             );
 
-        sendToMain(IsolateTaskStreamResult.done(
-          id: task.id,
-        ));
+        sendToMain(IsolateTaskStreamResult.done(id: task.id));
+        _logger.info('Upload task ${task.id} finished successfully.');
       } catch (e) {
-        sendToMain(IsolateTaskStreamResult.error(
-          id: task.id,
-          error: e.toString(),
-        ));
+        _logger.warning('Upload task ${task.id} failed: $e');
+        sendToMain(
+          IsolateTaskStreamResult.error(id: task.id, error: e.toString()),
+        );
       } finally {
         // Close the stream if it is still open
         // ignore: unawaited_futures
@@ -144,4 +156,10 @@ Future<void> setupHttpUploadIsolate(
       }
     },
   );
+}
+
+String _debugDevice(Device device) {
+  return 'alias=${device.alias}, ip=${device.ip}, port=${device.port}, https=${device.https}, '
+      'version=${device.version}, fingerprint=${device.fingerprint}, '
+      'methods=${device.discoveryMethods.map((e) => e.runtimeType).join('|')}';
 }

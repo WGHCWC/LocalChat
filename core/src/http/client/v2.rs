@@ -39,6 +39,7 @@ impl LsHttpClientV2 {
 
         let client = reqwest::Client::builder()
             .use_rustls_tls()
+            .no_proxy()
             .danger_accept_invalid_certs(true)
             .tls_info(true)
             .build()?;
@@ -75,13 +76,30 @@ impl LsHttpClientV2 {
         }
         .to_string();
 
-        let res = self
+        let res = match self
             .client
             .post(&url)
             .header("Content-Type", "application/json")
             .body(serde_json::to_string(&payload)?)
             .send()
-            .await?;
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                tracing::warn!(
+                    "v2 register request failed: url={}, error={:?}, is_timeout={}, is_connect={}, is_request={}, is_body={}, is_decode={}, source={:?}",
+                    url,
+                    err,
+                    err.is_timeout(),
+                    err.is_connect(),
+                    err.is_request(),
+                    err.is_body(),
+                    err.is_decode(),
+                    std::error::Error::source(&err)
+                );
+                return Err(err.into());
+            }
+        };
 
         if res.status() != StatusCode::OK {
             return res.into_error().await;
@@ -145,13 +163,46 @@ impl LsHttpClientV2 {
         }
         .to_string();
 
-        let res = self
+        tracing::info!(
+            "v2 prepare_upload request: url={}, protocol={:?}, ip={}, port={}, public_key_provided={}, pin_provided={}, file_count={}",
+            url,
+            protocol,
+            ip,
+            port,
+            public_key.is_some(),
+            pin.is_some(),
+            payload.files.len()
+        );
+        let res = match self
             .client
             .post(&url)
             .header("Content-Type", "application/json")
             .body(serde_json::to_string(&payload)?)
             .send()
-            .await?;
+            .await
+        {
+            Ok(res) => res,
+            Err(err) => {
+                tracing::warn!(
+                    "v2 prepare_upload request failed: url={}, error={:?}, is_timeout={}, is_connect={}, is_request={}, is_body={}, is_decode={}, source={:?}",
+                    url,
+                    err,
+                    err.is_timeout(),
+                    err.is_connect(),
+                    err.is_request(),
+                    err.is_body(),
+                    err.is_decode(),
+                    std::error::Error::source(&err)
+                );
+                return Err(err.into());
+            }
+        };
+        tracing::info!(
+            "v2 prepare_upload response: url={}, status={}, protocol={:?}",
+            url,
+            res.status(),
+            protocol
+        );
 
         if protocol == ProtocolType::Https {
             super::verify_cert_from_res(&res, public_key)?;
@@ -227,7 +278,41 @@ impl LsHttpClientV2 {
         let stream = ReceiverStream::new(binary).map(Ok::<Vec<u8>, anyhow::Error>);
         let body = reqwest::Body::wrap_stream(stream);
 
-        let res = self.client.post(&url).body(body).send().await?;
+        let redacted_url = redact_query_value(&url, "token", token);
+        tracing::info!(
+            "v2 upload request: url={}, protocol={:?}, ip={}, port={}, public_key_provided={}, session_id={}, file_id={}, token_len={}",
+            redacted_url,
+            protocol,
+            ip,
+            port,
+            public_key.is_some(),
+            session_id,
+            file_id,
+            token.len()
+        );
+        let res = match self.client.post(&url).body(body).send().await {
+            Ok(res) => res,
+            Err(err) => {
+                tracing::warn!(
+                    "v2 upload request failed: url={}, error={:?}, is_timeout={}, is_connect={}, is_request={}, is_body={}, is_decode={}, source={:?}",
+                    redacted_url,
+                    err,
+                    err.is_timeout(),
+                    err.is_connect(),
+                    err.is_request(),
+                    err.is_body(),
+                    err.is_decode(),
+                    std::error::Error::source(&err)
+                );
+                return Err(err.into());
+            }
+        };
+        tracing::info!(
+            "v2 upload response: url={}, status={}, protocol={:?}",
+            redacted_url,
+            res.status(),
+            protocol
+        );
 
         if protocol == ProtocolType::Https {
             super::verify_cert_from_res(&res, public_key)?;
@@ -449,4 +534,11 @@ impl LsHttpClientV2 {
 
         Ok(total_bytes)
     }
+}
+
+fn redact_query_value(url: &str, key: &str, value: &str) -> String {
+    url.replace(
+        &format!("{key}={value}"),
+        &format!("{key}=<{} chars>", value.len()),
+    )
 }

@@ -156,6 +156,7 @@ pub(super) fn create_reqwest_client(
 
     let client = reqwest::Client::builder()
         .use_rustls_tls()
+        .no_proxy()
         .danger_accept_invalid_certs(true)
         .tls_info(true)
         .identity(identity)
@@ -170,19 +171,67 @@ pub(super) fn verify_cert_from_res(
     response: &Response,
     public_key: Option<String>,
 ) -> anyhow::Result<String> {
+    let response_url = redacted_response_url(response);
+    tracing::debug!(
+        "verify_cert_from_res: url={}, status={}, public_key_provided={}",
+        response_url,
+        response.status(),
+        public_key.is_some()
+    );
     let tls_info_ext = response
         .extensions()
         .get::<reqwest::tls::TlsInfo>()
-        .ok_or_else(|| anyhow::anyhow!("TLS info not found"))?;
+        .ok_or_else(|| {
+            tracing::warn!(
+                "verify_cert_from_res: TLS info not found url={} status={} extension_count_unknown",
+                response_url,
+                response.status()
+            );
+            anyhow::anyhow!("TLS info not found")
+        })?;
     let cert = tls_info_ext
         .peer_certificate()
-        .ok_or_else(|| anyhow::anyhow!("Certificate not found"))?;
+        .ok_or_else(|| {
+            tracing::warn!(
+                "verify_cert_from_res: certificate not found url={} status={}",
+                response_url,
+                response.status()
+            );
+            anyhow::anyhow!("Certificate not found")
+        })?;
+    tracing::debug!(
+        "verify_cert_from_res: peer certificate found url={} cert_len={}",
+        response_url,
+        cert.len()
+    );
     crypto::cert::verify_cert_from_der(cert, public_key.as_deref())?;
     let public_key = match public_key {
         Some(public_key) => public_key,
         None => crypto::cert::public_key_from_cert_der(cert)?,
     };
     Ok(public_key)
+}
+
+fn redacted_response_url(response: &Response) -> String {
+    redact_query_value(response.url().as_str(), "token")
+}
+
+fn redact_query_value(url: &str, key: &str) -> String {
+    let marker = format!("{key}=");
+    let Some(start) = url.find(&marker) else {
+        return url.to_string();
+    };
+    let value_start = start + marker.len();
+    let value_end = url[value_start..]
+        .find('&')
+        .map(|idx| value_start + idx)
+        .unwrap_or(url.len());
+    format!(
+        "{}<{} chars>{}",
+        &url[..value_start],
+        url[value_start..value_end].len(),
+        &url[value_end..]
+    )
 }
 
 #[derive(Serialize, Deserialize)]

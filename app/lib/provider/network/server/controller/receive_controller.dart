@@ -193,8 +193,14 @@ class ReceiveController {
     required bool https,
     required bool v2,
   }) async {
+    _logger.info(
+      'prepareUpload request start ip=${request.ip} requestedUri=${request.uri} serverPort=$port serverHttps=$https v2=$v2',
+    );
     if (server.getState().session != null) {
       // block incoming requests when we are already in a session
+      _logger.warning(
+        'prepareUpload blocked because session exists currentSession=${server.getState().session?.sessionId} status=${server.getState().session?.status}',
+      );
       return await request.respondJson(409, message: 'Blocked by another session');
     }
 
@@ -211,13 +217,16 @@ class ReceiveController {
     final PrepareUploadRequestDto dto;
     try {
       final payload = await request.readAsString();
+      _logger.info('prepareUpload raw payload bytes=${payload.length}');
       dto = PrepareUploadRequestDto.fromJson(jsonDecode(payload));
     } catch (e) {
+      _logger.warning('prepareUpload malformed body from ip=${request.ip}', e);
       return await request.respondJson(400, message: 'Request body malformed');
     }
 
     if (dto.files.isEmpty) {
       // block empty requests (at least one file is required)
+      _logger.warning('prepareUpload rejected empty file list from sender=${dto.info.alias}');
       return await request.respondJson(400, message: 'Request must contain at least one file');
     }
 
@@ -237,6 +246,11 @@ class ReceiveController {
 
     _logger.info('Session Id: $sessionId');
     _logger.info('Destination Directory: $destinationDir');
+    _logger.info(
+      'prepareUpload parsed senderAlias=${dto.info.alias} senderFingerprint=${dto.info.fingerprint} '
+      'senderVersion=${dto.info.version} senderPort=${dto.info.port} senderProtocol=${dto.info.protocol} '
+      'fileCount=${dto.files.length} autoAcceptChatAttachment=$autoAcceptChatAttachment',
+    );
 
     final streamController = StreamController<Map<String, String>?>();
     server.setState(
@@ -288,6 +302,9 @@ class ReceiveController {
       selection = {
         for (final f in dto.files.values) f.id: f.fileName,
       };
+      _logger.info(
+        'prepareUpload auto selection quickSave=$quickSave autoAcceptChatAttachment=$autoAcceptChatAttachment files=${selection.length}',
+      );
     } else {
       if (checkPlatformHasTray() && (await windowManager.isMinimized() || !(await windowManager.isVisible()) || !(await windowManager.isFocused()))) {
         await showFromTray();
@@ -456,10 +473,19 @@ class ReceiveController {
     required HttpRequest request,
     required bool v2,
   }) async {
+    _logger.info(
+      'upload request start ip=${request.ip} uri=${request.uri} v2=$v2 contentLength=${request.headers.contentLength}',
+    );
     final receiveState = server.getState().session;
     if (receiveState == null) {
+      _logger.warning('upload rejected because there is no receive session.');
       return await request.respondJson(409, message: 'No session');
     }
+
+    _logger.info(
+      'upload current session sessionId=${receiveState.sessionId} status=${receiveState.status} '
+      'sender=${receiveState.sender.alias}/${receiveState.sender.ip}:${receiveState.sender.port} https=${receiveState.sender.https}',
+    );
 
     if (request.ip != receiveState.sender.ip) {
       _logger.warning('Invalid ip address: ${request.ip} (expected: ${receiveState.sender.ip})');
@@ -477,7 +503,7 @@ class ReceiveController {
     final sessionId = request.uri.queryParameters['sessionId'];
     if (fileId == null || token == null || (v2 && sessionId == null)) {
       // reject because of missing parameters
-      _logger.warning('Missing parameters: fileId=$fileId, token=$token, sessionId=$sessionId');
+      _logger.warning('Missing parameters: fileId=$fileId, tokenLength=${token?.length}, sessionId=$sessionId');
       return await request.respondJson(400, message: 'Missing parameters');
     }
 

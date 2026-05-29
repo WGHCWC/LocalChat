@@ -1,6 +1,9 @@
 import 'package:common/isolate.dart';
 import 'package:common/model/stored_security_context.dart';
+import 'package:logging/logging.dart';
 import 'package:rhttp/rhttp.dart';
+
+final _logger = Logger('RhttpWrapper');
 
 class RhttpWrapper implements CustomHttpClient {
   final RhttpClient _client;
@@ -49,27 +52,39 @@ class RhttpWrapper implements CustomHttpClient {
   }) async {
     final token = CancelToken();
     cancelToken.setCancel(token.cancel);
-    await _client.request(
-      method: HttpMethod.post,
-      expectBody: HttpExpectBody.bytes,
-      url: uri,
-      query: query,
-      headers: HttpHeaders.rawMap(headers),
-      body: HttpBody.stream(
-        stream,
-        length: int.parse(headers['Content-Length']!),
-      ),
-      onSendProgress: (curr, total) {
-        onSendProgress(curr / total);
-      },
-      cancelToken: token,
+    final length = int.parse(headers['Content-Length']!);
+    _logger.info(
+      'postStream start uri=$uri query=${_redactQuery(query)} length=$length headers=$headers',
     );
+    try {
+      await _client.request(
+        method: HttpMethod.post,
+        expectBody: HttpExpectBody.bytes,
+        url: uri,
+        query: query,
+        headers: HttpHeaders.rawMap(headers),
+        body: HttpBody.stream(
+          stream,
+          length: length,
+        ),
+        onSendProgress: (curr, total) {
+          _logger.fine('postStream progress uri=$uri curr=$curr total=$total');
+          onSendProgress(curr / total);
+        },
+        cancelToken: token,
+      );
+      _logger.info('postStream completed uri=$uri');
+    } catch (e, st) {
+      _logger.warning('postStream failed uri=$uri query=${_redactQuery(query)}', e, st);
+      rethrow;
+    }
   }
 }
 
 RhttpClient createRhttpClient(Duration timeout, StoredSecurityContext securityContext, {Interceptor? interceptor}) {
   return RhttpClient.createSync(
     settings: ClientSettings(
+      proxySettings: const ProxySettings.noProxy(),
       timeoutSettings: TimeoutSettings(
         timeout: timeout,
       ),
@@ -83,4 +98,10 @@ RhttpClient createRhttpClient(Duration timeout, StoredSecurityContext securityCo
     ),
     interceptors: interceptor != null ? [interceptor] : [],
   );
+}
+
+Map<String, String> _redactQuery(Map<String, String> query) {
+  return {
+    for (final entry in query.entries) entry.key: entry.key == 'token' ? '<${entry.value.length} chars>' : entry.value,
+  };
 }

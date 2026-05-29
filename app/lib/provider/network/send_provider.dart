@@ -147,6 +147,9 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
     do {
       invalidPin = false;
       try {
+        _logger.info(
+          'prepareUpload target=${_debugDevice(target)} files=${requestState.files.length} pin=${pin != null}',
+        );
         response = await client.prepareUpload(
           protocol: target.getProtocolType(),
           ip: target.ip!,
@@ -156,7 +159,13 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
           publicKey: null,
           pin: pin,
         );
+        _logger.info(
+          'prepareUpload response status=${response.statusCode} remoteSessionId=${response.response?.sessionId} acceptedFiles=${response.response?.files.length ?? 0}',
+        );
       } on rust_http.RsHttpClientError_StatusCode catch (e) {
+        _logger.warning(
+          'prepareUpload status error target=${_debugDevice(target)} status=${e.status} message=${e.message}',
+        );
         switch (e.status) {
           case 401:
             invalidPin = true;
@@ -219,6 +228,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
             return SessionStatus.finishedWithErrors;
         }
       } catch (e) {
+        _logger.warning('prepareUpload failed target=${_debugDevice(target)}', e);
         state = state.updateSession(
           sessionId: sessionId,
           state: (s) => s?.copyWith(
@@ -422,6 +432,9 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
     } else {
       _logger.info('Sending ${file.file.fileName}');
     }
+    _logger.info(
+      'upload dispatch target=${_debugDevice(target)} localSessionId=$sessionId remoteSessionId=$remoteSessionId fileId=${file.file.id} tokenLength=${token.length}',
+    );
 
     state = state.updateSession(
       sessionId: sessionId,
@@ -479,7 +492,7 @@ class SendNotifier extends Notifier<Map<String, SendSessionState>> {
           );
     } catch (e, st) {
       fileError = e.humanErrorMessage;
-      _logger.warning('Error while sending file ${file.file.fileName}', e, st);
+      _logger.warning('Error while sending file ${file.file.fileName} target=${_debugDevice(target)}', e, st);
     } finally {
       state = state.updateSession(
         sessionId: sessionId,
@@ -647,6 +660,10 @@ extension on Object {
 
     return e.toString();
   }
+}
+
+String _debugDevice(Device device) {
+  return 'alias=${device.alias}, ip=${device.ip}, port=${device.port}, https=${device.https}, version=${device.version}, fingerprint=${device.fingerprint}, methods=${device.discoveryMethods.map((e) => e.runtimeType).join('|')}';
 }
 
 String? _parseErrorMessage(Object? body) {
