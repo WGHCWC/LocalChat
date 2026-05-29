@@ -96,7 +96,8 @@ class ChatNotifier extends Notifier<ChatState> {
     }
 
     await initialize();
-    _database!.deleteMessagesByIds(ids);
+    final deletedAt = DateTime.now().toUtc().millisecondsSinceEpoch;
+    _database!.deleteMessagesByIds(ids, deletedAt: deletedAt);
     _refreshFromDb();
   }
 
@@ -182,7 +183,7 @@ class ChatNotifier extends Notifier<ChatState> {
     try {
       await syncOnlineChatMembersWithSnapshot(
         refreshOnlineMembers: refreshOnlineMembers,
-        getSnapshotSentAt: () => _database!.getMaxSentAt(),
+        getSnapshotSentAt: () => _database!.getSyncSnapshotSentAt(),
         getMembers: () => _database!.getMembers(),
         getOnlineDevices: () => ref.read(nearbyDevicesProvider).allDevices.values,
         syncDevice: _syncAndRecord,
@@ -304,7 +305,7 @@ class ChatNotifier extends Notifier<ChatState> {
 
     _database!.upsertMember(ChatMember.fromDevice(sender));
     try {
-      await _syncAndRecord(sender, _database!.getMaxSentAt());
+      await _syncAndRecord(sender, _database!.getSyncSnapshotSentAt());
       _refreshFromDb();
     } catch (e, st) {
       _logger.info(
@@ -407,12 +408,21 @@ class ChatNotifier extends Notifier<ChatState> {
     _refreshFromDb();
   }
 
-  Future<String?> _ensureThumbnailPath(String sourcePath, String attachmentId) async {
+  Future<String?> _ensureThumbnailPath(
+    String sourcePath,
+    String attachmentId,
+  ) async {
     final existingPath = _database!.getAttachment(attachmentId)?.thumbnailPath;
     if (hasUsableLocalAttachmentPath(existingPath)) {
       return existingPath;
     }
-    final thumbnailDir = Directory(p.join((await getApplicationSupportDirectory()).path, 'localsend', '.chat-thumbnails'));
+    final thumbnailDir = Directory(
+      p.join(
+        (await getApplicationSupportDirectory()).path,
+        'localsend',
+        '.chat-thumbnails',
+      ),
+    );
     if (!thumbnailDir.existsSync()) {
       thumbnailDir.createSync(recursive: true);
     }

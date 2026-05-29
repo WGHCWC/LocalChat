@@ -11,6 +11,8 @@ class ChatDatabase {
 
   ChatDatabase._(this._db);
 
+  static String _lastMessageDeleteAtKey(String roomId) => 'last_message_delete_at:$roomId';
+
   static ChatDatabase openInMemoryForTest() {
     final database = ChatDatabase._(sqlite3.openInMemory());
     database._migrate();
@@ -76,6 +78,12 @@ class ChatDatabase {
         FOREIGN KEY(message_id) REFERENCES chat_messages(id) ON DELETE CASCADE
       );
     ''');
+    _db.execute('''
+      CREATE TABLE IF NOT EXISTS chat_metadata (
+        key TEXT PRIMARY KEY,
+        int_value INTEGER NOT NULL
+      );
+    ''');
     _addColumnIfMissing('chat_attachments', 'thumbnail_path', 'TEXT');
     _addColumnIfMissing(
       'chat_attachments',
@@ -92,10 +100,7 @@ class ChatDatabase {
   }
 
   void _addColumnIfMissing(String table, String column, String definition) {
-    final columns = _db
-        .select('PRAGMA table_info($table);')
-        .map((row) => row['name'])
-        .toSet();
+    final columns = _db.select('PRAGMA table_info($table);').map((row) => row['name']).toSet();
     if (!columns.contains(column)) {
       _db.execute('ALTER TABLE $table ADD COLUMN $column $definition;');
     }
@@ -134,10 +139,7 @@ class ChatDatabase {
       SET thumbnail_path = ?
       WHERE id = ?;
       ''',
-      [
-        thumbnailPath,
-        attachmentId,
-      ],
+      [thumbnailPath, attachmentId],
     );
   }
 
@@ -220,7 +222,10 @@ class ChatDatabase {
     ]);
   }
 
-  void deleteMessagesByIds(Iterable<String> messageIds) {
+  void deleteMessagesByIds(
+    Iterable<String> messageIds, {
+    int? deletedAt,
+  }) {
     final ids = messageIds.toSet();
     if (ids.isEmpty) {
       return;
@@ -239,11 +244,36 @@ class ChatDatabase {
           args,
         );
       }
+      if (deletedAt != null) {
+        _recordMessageDeleteAt(deletedAt);
+      }
       _db.execute('COMMIT;');
     } catch (_) {
       _db.execute('ROLLBACK;');
       rethrow;
     }
+  }
+
+  void recordMessageDeleteAt(
+    int deletedAt, {
+    String roomId = defaultChatRoomId,
+  }) {
+    _recordMessageDeleteAt(deletedAt, roomId: roomId);
+  }
+
+  void _recordMessageDeleteAt(
+    int deletedAt, {
+    String roomId = defaultChatRoomId,
+  }) {
+    _db.execute(
+      '''
+      INSERT INTO chat_metadata (key, int_value)
+      VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET
+        int_value = MAX(chat_metadata.int_value, excluded.int_value);
+      ''',
+      [_lastMessageDeleteAtKey(roomId), deletedAt],
+    );
   }
 
   Iterable<List<T>> _chunks<T>(List<T> values, int size) sync* {
@@ -335,6 +365,23 @@ class ChatDatabase {
       [roomId],
     );
     return _asInt(rows.first['max_sent_at']);
+  }
+
+  int getLastMessageDeleteAt({String roomId = defaultChatRoomId}) {
+    final rows = _db.select(
+      'SELECT int_value FROM chat_metadata WHERE key = ?;',
+      [_lastMessageDeleteAtKey(roomId)],
+    );
+    if (rows.isEmpty) {
+      return 0;
+    }
+    return _asInt(rows.first['int_value']);
+  }
+
+  int getSyncSnapshotSentAt({String roomId = defaultChatRoomId}) {
+    final maxSentAt = getMaxSentAt(roomId: roomId);
+    final lastDeleteAt = getLastMessageDeleteAt(roomId: roomId);
+    return maxSentAt > lastDeleteAt ? maxSentAt : lastDeleteAt;
   }
 
   ChatAttachment? getAttachment(String attachmentId) {
@@ -439,9 +486,7 @@ class ChatDatabase {
   }
 
   ChatMessage _messageFromRow(Row row) {
-    final attachment = row['attachment_id'] == null
-        ? null
-        : _attachmentFromRow(row);
+    final attachment = row['attachment_id'] == null ? null : _attachmentFromRow(row);
     return ChatMessage(
       id: row['message_id'] as String,
       roomId: row['room_id'] as String,

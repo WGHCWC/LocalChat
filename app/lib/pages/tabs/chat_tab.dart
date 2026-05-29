@@ -26,6 +26,7 @@ import 'package:localsend_app/widget/list_tile/device_list_tile.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ChatTab extends StatefulWidget {
   final List<ChatShellDestination> shellDestinations;
@@ -57,6 +58,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool selectingMessages;
   final int selectedMessageCount;
   final int onlineMemberCount;
+  final int totalMemberCount;
   final bool syncing;
   final bool messagesEmpty;
   final List<ChatShellDestination> shellDestinations;
@@ -70,6 +72,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.selectingMessages,
     required this.selectedMessageCount,
     required this.onlineMemberCount,
+    required this.totalMemberCount,
     required this.syncing,
     required this.messagesEmpty,
     required this.shellDestinations,
@@ -191,7 +194,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
             overflow: TextOverflow.ellipsis,
           )
         : Text(
-            '$onlineMemberCount online',
+            '$onlineMemberCount/$totalMemberCount online',
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleSmall,
           );
@@ -405,7 +408,12 @@ class _ChatTabState extends State<ChatTab> with Refena {
         appBar: _ChatAppBar(
           selectingMessages: _selectingMessages,
           selectedMessageCount: _selectedMessageIds.length,
-          onlineMemberCount: chat.members.where((member) => member.ip != null).length,
+          onlineMemberCount: chat.members
+              .where(
+                (member) => context.ref.notifier(chatProvider).isMemberOnline(member.fingerprint),
+              )
+              .length,
+          totalMemberCount: chat.members.length,
           syncing: chat.syncing,
           messagesEmpty: chat.messages.isEmpty,
           shellDestinations: widget.shellDestinations,
@@ -715,6 +723,8 @@ class _MessageBubble extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final bubbleColor = _messageUserColor(message.senderFingerprint, scheme);
     final textColor = _readableTextColor(bubbleColor, scheme);
+    final messageText = message.text ?? '';
+    final linkUri = _linkUriForText(messageText);
     final crossAlign = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final contextData = _contextDataForMessage(message);
     final checkbox = Checkbox(
@@ -777,13 +787,18 @@ class _MessageBubble extends StatelessWidget {
                   ).textTheme.bodyLarge!.copyWith(color: textColor),
                   child: switch (message.kind) {
                     ChatMessageKind.text when isSelectionMode => Text(
-                      message.text ?? '',
+                      messageText,
                       style: Theme.of(
                         context,
                       ).textTheme.bodyLarge!.copyWith(color: textColor),
                     ),
+                    ChatMessageKind.text when linkUri != null => _LinkMessageText(
+                      text: messageText,
+                      uri: linkUri,
+                      textColor: textColor,
+                    ),
                     ChatMessageKind.text => SelectableText(
-                      message.text ?? '',
+                      messageText,
                       style: Theme.of(
                         context,
                       ).textTheme.bodyLarge!.copyWith(color: textColor),
@@ -906,6 +921,51 @@ class _MessageBubble extends StatelessWidget {
         return attachment == null ? null : _MessageContextData.attachment(attachment);
     }
   }
+}
+
+class _LinkMessageText extends StatelessWidget {
+  final String text;
+  final Uri uri;
+  final Color textColor;
+
+  const _LinkMessageText({
+    required this.text,
+    required this.uri,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          unawaited(launchUrl(uri, mode: LaunchMode.externalApplication));
+        },
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: textColor,
+            decoration: TextDecoration.underline,
+            decorationColor: textColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Uri? _linkUriForText(String text) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty || trimmed.contains(RegExp(r'\s'))) {
+    return null;
+  }
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || !uri.isAbsolute) {
+    return null;
+  }
+  final scheme = uri.scheme.toLowerCase();
+  return scheme == 'http' || scheme == 'https' ? uri : null;
 }
 
 bool _hasLocalAttachmentPath(String? localPath) {
