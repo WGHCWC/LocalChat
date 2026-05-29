@@ -116,6 +116,7 @@ class _HomePageState extends State<HomePage> with Refena {
           children: [
             SafeArea(
               child: ChatTab(
+                onOpenDownloads: () => vm.changeTab(HomeTab.downloads),
                 shellDestinations: HomeTab.values
                     .where((tab) => tab != HomeTab.chat)
                     .map(

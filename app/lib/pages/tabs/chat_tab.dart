@@ -29,8 +29,13 @@ import 'package:share_plus/share_plus.dart';
 
 class ChatTab extends StatefulWidget {
   final List<ChatShellDestination> shellDestinations;
+  final VoidCallback? onOpenDownloads;
 
-  const ChatTab({this.shellDestinations = const [], super.key});
+  const ChatTab({
+    this.shellDestinations = const [],
+    this.onOpenDownloads,
+    super.key,
+  });
 
   @override
   State<ChatTab> createState() => _ChatTabState();
@@ -428,7 +433,10 @@ class _ChatTabState extends State<ChatTab> with Refena {
               Container(
                 width: double.infinity,
                 color: Theme.of(context).colorScheme.errorContainer,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 child: Text(
                   chat.errorMessage!,
                   style: TextStyle(
@@ -448,7 +456,9 @@ class _ChatTabState extends State<ChatTab> with Refena {
                             isScrollControlled: true,
                             showDragHandle: true,
                             builder: (_) => _MemberManagementSheet(
-                              key: const ValueKey('chat-member-management-sheet'),
+                              key: const ValueKey(
+                                'chat-member-management-sheet',
+                              ),
                             ),
                           );
                         },
@@ -478,6 +488,7 @@ class _ChatTabState extends State<ChatTab> with Refena {
                                 onClearSelection: _clearMessageSelection,
                                 onEnterSelection: _startMessageSelection,
                                 onToggleSelection: _toggleMessageSelection,
+                                onOpenDownloads: widget.onOpenDownloads,
                               );
                             },
                           ),
@@ -684,6 +695,7 @@ class _MessageBubble extends StatelessWidget {
   final VoidCallback onClearSelection;
   final ValueChanged<String> onEnterSelection;
   final ValueChanged<String> onToggleSelection;
+  final VoidCallback? onOpenDownloads;
 
   const _MessageBubble({
     required this.message,
@@ -693,6 +705,7 @@ class _MessageBubble extends StatelessWidget {
     required this.onClearSelection,
     required this.onEnterSelection,
     required this.onToggleSelection,
+    required this.onOpenDownloads,
   });
 
   @override
@@ -710,54 +723,59 @@ class _MessageBubble extends StatelessWidget {
     );
     final messageCell = ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 420),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Color.alphaBlend(
-                  scheme.secondary.withValues(alpha: 0.16),
-                  bubbleColor,
-                )
-              : bubbleColor,
-          borderRadius: BorderRadius.circular(8),
-          border: isSelected ? Border.all(color: scheme.secondary, width: 2) : null,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: GestureDetector(
-            onTap: isSelectionMode ? () => onToggleSelection(message.id) : onClearSelection,
-            onLongPressStart: contextData == null
-                ? null
-                : (details) => _showCopyMenu(
-                    context: context,
-                    position: details.globalPosition,
-                    message: contextData,
-                    onSelect: onEnterSelection,
-                  ),
-            onSecondaryTapDown: contextData == null
-                ? null
-                : (details) => _showCopyMenu(
-                    context: context,
-                    position: details.globalPosition,
-                    message: contextData,
-                    onSelect: onEnterSelection,
-                  ),
-            child: DefaultTextStyle(
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge!.copyWith(color: textColor),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      '${message.senderAlias}  ${_formatTime(message.sentAt)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: textColor.withValues(alpha: 0.72),
-                      ),
-                    ),
-                  ),
-                  switch (message.kind) {
+      child: GestureDetector(
+        onTap: isSelectionMode ? () => onToggleSelection(message.id) : onClearSelection,
+        onLongPressStart: contextData == null
+            ? null
+            : (details) => _showCopyMenu(
+                context: context,
+                position: details.globalPosition,
+                message: contextData,
+                onSelect: onEnterSelection,
+              ),
+        onSecondaryTapDown: contextData == null
+            ? null
+            : (details) => _showCopyMenu(
+                context: context,
+                position: details.globalPosition,
+                message: contextData,
+                onSelect: onEnterSelection,
+              ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 4, right: 4, bottom: 4),
+              child: Text(
+                '${message.senderAlias}  ${_formatTime(message.sentAt)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Color.alphaBlend(
+                        scheme.secondary.withValues(alpha: 0.16),
+                        bubbleColor,
+                      )
+                    : bubbleColor,
+                borderRadius: BorderRadius.circular(8),
+                border: isSelected ? Border.all(color: scheme.secondary, width: 2) : null,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: DefaultTextStyle(
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge!.copyWith(color: textColor),
+                  child: switch (message.kind) {
                     ChatMessageKind.text when isSelectionMode => Text(
                       message.text ?? '',
                       style: Theme.of(
@@ -778,6 +796,7 @@ class _MessageBubble extends StatelessWidget {
                         onClearSelection: onClearSelection,
                         onToggleSelection: () => onToggleSelection(message.id),
                         onEnterSelection: onEnterSelection,
+                        onOpenDownloads: onOpenDownloads,
                       ),
                     ChatMessageKind.attachment when attachment != null => _AttachmentCard(
                       attachment: attachment,
@@ -786,13 +805,14 @@ class _MessageBubble extends StatelessWidget {
                       onClearSelection: onClearSelection,
                       onToggleSelection: () => onToggleSelection(message.id),
                       onEnterSelection: onEnterSelection,
+                      onOpenDownloads: onOpenDownloads,
                     ),
                     _ => const SizedBox.shrink(),
                   },
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -912,6 +932,7 @@ class _AttachmentCard extends StatelessWidget {
   final VoidCallback onClearSelection;
   final VoidCallback onToggleSelection;
   final ValueChanged<String> onEnterSelection;
+  final VoidCallback? onOpenDownloads;
 
   const _AttachmentCard({
     required this.attachment,
@@ -920,6 +941,7 @@ class _AttachmentCard extends StatelessWidget {
     required this.onClearSelection,
     required this.onToggleSelection,
     required this.onEnterSelection,
+    required this.onOpenDownloads,
   });
 
   @override
@@ -944,7 +966,11 @@ class _AttachmentCard extends StatelessWidget {
             return;
           }
           onClearSelection();
-          await _openAttachment(context, attachment);
+          await _openAttachment(
+            context,
+            attachment,
+            onOpenDownloads: onOpenDownloads,
+          );
         },
         borderRadius: BorderRadius.circular(6),
         child: Padding(
@@ -1006,6 +1032,7 @@ class _ImageAttachmentCard extends StatelessWidget {
   final VoidCallback onClearSelection;
   final VoidCallback onToggleSelection;
   final ValueChanged<String> onEnterSelection;
+  final VoidCallback? onOpenDownloads;
 
   const _ImageAttachmentCard({
     required this.attachment,
@@ -1014,6 +1041,7 @@ class _ImageAttachmentCard extends StatelessWidget {
     required this.onClearSelection,
     required this.onToggleSelection,
     required this.onEnterSelection,
+    required this.onOpenDownloads,
   });
 
   @override
@@ -1085,20 +1113,28 @@ class _ImageAttachmentCard extends StatelessWidget {
   }
 
   Future<void> _openImage(BuildContext context) async {
-    await _openAttachment(context, attachment);
+    await _openAttachment(
+      context,
+      attachment,
+      onOpenDownloads: onOpenDownloads,
+    );
   }
 }
 
 Future<void> _openAttachment(
   BuildContext context,
-  ChatAttachment attachment,
-) async {
+  ChatAttachment attachment, {
+  VoidCallback? onOpenDownloads,
+}) async {
   final notifier = context.ref.notifier(chatProvider);
   if (attachment.fileType == FileType.image) {
     final resolvedAttachment = await notifier.resolveAttachmentForPreview(
       attachment,
     );
     if (resolvedAttachment == null) {
+      if (context.mounted) {
+        onOpenDownloads?.call();
+      }
       await notifier.requestAttachmentDownload(attachment);
       return;
     }
@@ -1121,6 +1157,9 @@ Future<void> _openAttachment(
     return;
   }
 
+  if (context.mounted) {
+    onOpenDownloads?.call();
+  }
   await notifier.requestAttachmentDownload(attachment);
 }
 
