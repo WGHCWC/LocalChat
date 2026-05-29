@@ -4,6 +4,15 @@
 
 LocalChat is a LAN chat and file transfer app for nearby devices. It is built from the LocalSend codebase and keeps LocalSend's local-network discovery, HTTPS transfer, and cross-platform foundation while adapting the product for chatroom-oriented local communication.
 
+## Downloads
+
+Release 0.1:
+
+- [Android arm64 APK](https://github.com/WGHCWC/LocalChat/releases/download/0.1/LocalChat-android-arm64.apk)
+- [macOS Apple Silicon DMG](https://github.com/WGHCWC/LocalChat/releases/download/0.1/LocalChat-macos-arm64.dmg)
+- [macOS Intel DMG](https://github.com/WGHCWC/LocalChat/releases/download/0.1/LocalChat-macos-x64.dmg)
+- [All release files](https://github.com/WGHCWC/LocalChat/releases/tag/0.1)
+
 ## Origin
 
 LocalChat is based on [LocalSend](https://github.com/localsend/localsend). The original LocalSend project is a free, open-source local-network file sharing app. This repository keeps the upstream foundation and applies LocalChat-specific changes for LAN chat, message synchronization, download behavior, and platform packaging.
