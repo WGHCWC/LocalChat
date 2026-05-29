@@ -1,3 +1,5 @@
+[中文](readme_i18n/README_ZH.md) | [Čeština](readme_i18n/README_CS.md) | [Español](readme_i18n/README_ES.md) | [فارسی](readme_i18n/README_FA.md) | [Français](readme_i18n/README_FR.md) | [Bahasa Indonesia](readme_i18n/README_ID.md) | [Italiano](readme_i18n/README_IT.md) | [日本語](readme_i18n/README_JA.md) | [ភាសាខ្មែរ](readme_i18n/README_KM.md) | [한국어](readme_i18n/README_KO.md) | [Bahasa Melayu](readme_i18n/README_MS.md) | [Filipino](readme_i18n/README_PH.md) | [Polski](readme_i18n/README_PL.md) | [Português do Brasil](readme_i18n/README_PT_BR.md) | [Русский](readme_i18n/README_RU.md) | [ไทย](readme_i18n/README_TH.md) | [Türkçe](readme_i18n/README_TR.md) | [Українська](readme_i18n/README_UK.md) | [Tiếng Việt](readme_i18n/README_VI.md)
+
 # LocalChat
 
 LocalChat is a LAN chat and file transfer app for nearby devices. It is built from the LocalSend codebase and keeps LocalSend's local-network discovery, HTTPS transfer, and cross-platform foundation while adapting the product for chatroom-oriented local communication.
