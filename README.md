@@ -6,12 +6,8 @@ LocalChat is a LAN chat and file transfer app for nearby devices. It is built fr
 
 ## Downloads
 
-Release 0.1:
-
-- [Android arm64 APK](https://github.com/WGHCWC/LocalChat/releases/download/0.1/LocalChat-android-arm64.apk)
-- [macOS Apple Silicon DMG](https://github.com/WGHCWC/LocalChat/releases/download/0.1/LocalChat-macos-arm64.dmg)
-- [macOS Intel DMG](https://github.com/WGHCWC/LocalChat/releases/download/0.1/LocalChat-macos-x64.dmg)
-- [All release files](https://github.com/WGHCWC/LocalChat/releases/tag/0.1)
+- [Release 0.1](https://github.com/WGHCWC/LocalChat/releases/tag/0.1)
+- [All releases](https://github.com/WGHCWC/LocalChat/releases)
 
 ## Origin
 
