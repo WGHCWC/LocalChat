@@ -10,6 +10,7 @@ import 'package:localsend_app/provider/favorites_provider.dart';
 import 'package:localsend_app/provider/network/send_provider.dart';
 import 'package:localsend_app/util/favorites.dart';
 import 'package:localsend_app/util/native/taskbar_helper.dart';
+import 'package:localsend_app/pages/progress_page.dart';
 import 'package:localsend_app/widget/animations/initial_fade_transition.dart';
 import 'package:localsend_app/widget/animations/initial_slide_transition.dart';
 import 'package:localsend_app/widget/custom_basic_appbar.dart';
@@ -76,6 +77,23 @@ class _SendPageState extends State<SendPage> with Refena {
       return Scaffold(
         body: Container(),
       );
+    }
+    if (sendState != null) {
+      switch (sendState.status) {
+        case SessionStatus.sending:
+        case SessionStatus.finished:
+        case SessionStatus.finishedWithErrors:
+        case SessionStatus.canceledBySender:
+        case SessionStatus.canceledByReceiver:
+          return ProgressPage(
+            showAppBar: widget.showAppBar,
+            closeSessionOnClose: widget.closeSessionOnClose,
+            sessionId: widget.sessionId,
+            autoExitOnFinish: false,
+          );
+        default:
+          break;
+      }
     }
     final myDevice = ref.watch(deviceFullInfoProvider);
     final targetDevice = sendState?.target ?? _targetDevice!;

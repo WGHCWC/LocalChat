@@ -14,6 +14,7 @@ import 'package:localsend_app/model/cross_file.dart';
 import 'package:localsend_app/provider/chat/chat_provider.dart';
 import 'package:localsend_app/provider/device_info_provider.dart';
 import 'package:localsend_app/provider/network/nearby_devices_provider.dart';
+import 'package:localsend_app/provider/settings_provider.dart';
 import 'package:localsend_app/util/file_path_helper.dart';
 import 'package:localsend_app/util/file_size_helper.dart';
 import 'package:localsend_app/util/native/cross_file_converters.dart';
@@ -91,6 +92,37 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final isMacOs = checkPlatform([TargetPlatform.macOS]);
+    final isWindows = checkPlatform([TargetPlatform.windows]);
+    final windowsLeftActionBar = isWindows && context.watch(settingsProvider.select((s) => s.windowsLeftActionBar));
+    if (windowsLeftActionBar) {
+      return AppBar(
+        toolbarHeight: localSendAppBarHeight,
+        automaticallyImplyLeading: false,
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        titleSpacing: 12,
+        title: Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _buildActionWidgets(context),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _buildTitleContent(context),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return AppBar(
       toolbarHeight: localSendAppBarHeight,
       automaticallyImplyLeading: false,
@@ -100,105 +132,12 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
       leadingWidth: isMacOs ? _macTrafficLightPadding + (selectingMessages ? 48 : 0) : null,
       leading: _buildLeading(isMacOs),
       title: _buildTitle(context, isMacOs),
-      actions: [
-        if (selectingMessages) ...[
-          TextButton.icon(
-            style: compactAppBarButtonStyle(),
-            onPressed: messagesEmpty ? null : onSelectAllMessages,
-            icon: const Icon(Icons.select_all),
-            label: const Text('Select all'),
-          ),
-          IconButton(
-            constraints: const BoxConstraints.tightFor(
-              width: localSendAppBarHeight,
-              height: localSendAppBarHeight,
-            ),
-            padding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: onDeleteSelectedMessages,
-          ),
-        ] else ...[
-          if (syncing)
-            const Padding(
-              padding: EdgeInsets.only(right: 8),
-              child: Center(
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            ),
-          IconButton(
-            constraints: const BoxConstraints.tightFor(
-              width: localSendAppBarHeight,
-              height: localSendAppBarHeight,
-            ),
-            padding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Sync now',
-            onPressed: syncing ? null : onSyncNow,
-            icon: const Icon(Icons.sync),
-          ),
-          PopupMenuButton<Object>(
-            padding: EdgeInsets.zero,
-            icon: const SizedBox.square(
-              dimension: localSendAppBarHeight,
-              child: Icon(Icons.more_horiz),
-            ),
-            onSelected: (action) async {
-              if (action is int) {
-                shellDestinations[action].onSelected();
-                return;
-              }
-
-              if (action == _ChatMenuAction.members) {
-                await onShowMembers();
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: _ChatMenuAction.members,
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.group),
-                  title: Text('User management'),
-                ),
-              ),
-              if (shellDestinations.isNotEmpty) const PopupMenuDivider(),
-              for (final (index, destination) in shellDestinations.indexed)
-                PopupMenuItem(
-                  value: index,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(destination.icon),
-                    title: Text(
-                      destination.label,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ],
+      actions: _buildActionWidgets(context),
     );
   }
 
   Widget _buildTitle(BuildContext context, bool isMacOs) {
-    final title = selectingMessages
-        ? Text(
-            '$selectedMessageCount selected',
-            overflow: TextOverflow.ellipsis,
-          )
-        : Text(
-            '$onlineMemberCount/$totalMemberCount online',
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall,
-          );
-
+    final title = _buildTitleContent(context);
     if (!isMacOs) {
       return title;
     }
@@ -210,6 +149,20 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: Align(alignment: Alignment.centerLeft, child: title),
       ),
     );
+  }
+
+  Widget _buildTitleContent(BuildContext context) {
+    final title = selectingMessages
+        ? Text(
+            '$selectedMessageCount selected',
+            overflow: TextOverflow.ellipsis,
+          )
+        : Text(
+            '$onlineMemberCount/$totalMemberCount online',
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleSmall,
+          );
+    return title;
   }
 
   Widget? _buildLeading(bool isMacOs) {
@@ -244,6 +197,103 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         closeButton,
       ],
     );
+  }
+
+  List<Widget> _buildActionWidgets(BuildContext context) {
+    final isWindows = checkPlatform([TargetPlatform.windows]);
+    if (selectingMessages) {
+      return [
+        if (isWindows)
+          TextButton.icon(
+            style: compactAppBarButtonStyle(),
+            onPressed: onExitSelection,
+            icon: const Icon(Icons.close),
+            label: const Text('Close'),
+          ),
+        TextButton.icon(
+          style: compactAppBarButtonStyle(),
+          onPressed: messagesEmpty ? null : onSelectAllMessages,
+          icon: const Icon(Icons.select_all),
+          label: const Text('Select all'),
+        ),
+        IconButton(
+          constraints: const BoxConstraints.tightFor(
+            width: localSendAppBarHeight,
+            height: localSendAppBarHeight,
+          ),
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+          tooltip: 'Delete',
+          icon: const Icon(Icons.delete_outline),
+          onPressed: onDeleteSelectedMessages,
+        ),
+      ];
+    }
+
+    return [
+      if (syncing)
+        const Padding(
+          padding: EdgeInsets.only(right: 8),
+          child: Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      IconButton(
+        constraints: const BoxConstraints.tightFor(
+          width: localSendAppBarHeight,
+          height: localSendAppBarHeight,
+        ),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        tooltip: 'Sync now',
+        onPressed: syncing ? null : onSyncNow,
+        icon: const Icon(Icons.sync),
+      ),
+      PopupMenuButton<Object>(
+        padding: EdgeInsets.zero,
+        icon: const SizedBox.square(
+          dimension: localSendAppBarHeight,
+          child: Icon(Icons.more_horiz),
+        ),
+        onSelected: (action) async {
+          if (action is int) {
+            shellDestinations[action].onSelected();
+            return;
+          }
+
+          if (action == _ChatMenuAction.members) {
+            await onShowMembers();
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: _ChatMenuAction.members,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.group),
+              title: Text('User management'),
+            ),
+          ),
+          if (shellDestinations.isNotEmpty) const PopupMenuDivider(),
+          for (final (index, destination) in shellDestinations.indexed)
+            PopupMenuItem(
+              value: index,
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(destination.icon),
+                title: Text(
+                  destination.label,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+        ],
+      ),
+    ];
   }
 }
 
@@ -1631,7 +1681,18 @@ class _MemberManagementSheet extends StatelessWidget {
                         child: DeviceListTile(
                           device: device,
                           info: 'Tap to add',
-                          onTap: () => context.ref.notifier(chatProvider).addMember(device),
+                          onTap: () async {
+                            final added = await context.ref.notifier(chatProvider).addMember(device);
+                            if (!context.mounted) {
+                              return;
+                            }
+                            if (!added) {
+                              final errorMessage = context.ref.read(chatProvider).errorMessage;
+                              if (errorMessage != null && errorMessage.isNotEmpty) {
+                                context.showSnackBar(errorMessage);
+                              }
+                            }
+                          },
                         ),
                       );
                     }),

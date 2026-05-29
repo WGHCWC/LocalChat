@@ -4,7 +4,10 @@ import 'dart:ui';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:localsend_app/provider/settings_provider.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
+import 'package:refena_flutter/refena_flutter.dart';
+import 'package:routerino/routerino.dart';
 
 const double localSendAppBarHeight = 35;
 const double _macTrafficLightPadding = 72;
@@ -64,6 +67,8 @@ PreferredSizeWidget basicLocalSendAppbar(
   String title, {
   List<Widget> actions = const [],
 }) {
+  final isWindows = checkPlatform([TargetPlatform.windows]);
+  final windowsLeftActionBar = isWindows ? Routerino.context.ref.read(settingsProvider).windowsLeftActionBar : false;
   // Keeps the native draggable macOS header while moving navigation to the trailing edge.
   if (checkPlatform([TargetPlatform.macOS])) {
     return PreferredSize(
@@ -112,11 +117,27 @@ PreferredSizeWidget basicLocalSendAppbar(
   return AppBar(
     toolbarHeight: localSendAppBarHeight,
     automaticallyImplyLeading: false,
-    title: Text(
-      title,
-      overflow: TextOverflow.ellipsis,
-      style: const TextStyle(fontSize: 15),
-    ),
-    actions: [...actions, const CustomBackTextButton()],
+    leadingWidth: isWindows && windowsLeftActionBar ? null : 0,
+    leading: isWindows && windowsLeftActionBar
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [CustomBackTextButton()],
+          )
+        : null,
+    title: isWindows && windowsLeftActionBar
+        ? Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              title,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 15),
+            ),
+          )
+        : Text(
+            title,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 15),
+          ),
+    actions: isWindows && windowsLeftActionBar ? [...actions] : [...actions, const CustomBackTextButton()],
   );
 }

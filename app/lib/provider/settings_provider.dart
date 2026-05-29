@@ -70,6 +70,7 @@ class SettingsService extends PureNotifier<SettingsState> {
     shareViaLinkAutoAccept: _persistence.getShareViaLinkAutoAccept(),
     discoveryTimeout: _persistence.getDiscoveryTimeout(),
     advancedSettings: _persistence.getAdvancedSettingsEnabled(),
+    windowsLeftActionBar: _persistence.getWindowsLeftActionBar(),
   );
 
   Future<void> setAlias(String alias) async {
@@ -245,6 +246,13 @@ class SettingsService extends PureNotifier<SettingsState> {
 
     state = state.copyWith(
       shareViaLinkAutoAccept: shareViaLinkAutoAccept,
+    );
+  }
+
+  Future<void> setWindowsLeftActionBar(bool enabled) async {
+    await _persistence.setWindowsLeftActionBar(enabled);
+    state = state.copyWith(
+      windowsLeftActionBar: enabled,
     );
   }
 }

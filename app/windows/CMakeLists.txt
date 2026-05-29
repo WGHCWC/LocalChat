@@ -56,6 +56,12 @@ add_subdirectory("runner")
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+# The gal Windows plugin uses C++/WinRT APIs but does not link RuntimeObject
+# on its own, which breaks Release linking with newer toolchains.
+if(TARGET gal_plugin)
+  target_link_libraries(gal_plugin PRIVATE runtimeobject.lib)
+endif()
+
 
 # === Installation ===
 # Support files are copied into place next to the executable, so that it can
@@ -74,10 +80,17 @@ set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
-install(FILES
+set(WINDOWS_RUNTIME_FILES
   "${BINARY_NAME}.exe.manifest"
-  "localsend_msix_helper.msix"
   "install_msix_helper.ps1"
+)
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/localsend_msix_helper.msix")
+  list(APPEND WINDOWS_RUNTIME_FILES "localsend_msix_helper.msix")
+endif()
+
+install(FILES
+  ${WINDOWS_RUNTIME_FILES}
   DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
@@ -89,6 +102,15 @@ install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
 
 if(PLUGIN_BUNDLED_LIBRARIES)
   install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+endif()
+
+# Bundle Dart native assets (for instance sqlite3.dll built by package:sqlite3).
+file(GLOB WINDOWS_NATIVE_ASSET_LIBRARIES
+  "${PROJECT_BUILD_DIR}/native_assets/windows/*.dll")
+if(WINDOWS_NATIVE_ASSET_LIBRARIES)
+  install(FILES "${WINDOWS_NATIVE_ASSET_LIBRARIES}"
     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)
 endif()

@@ -4,10 +4,20 @@ fvm flutter clean
 fvm flutter pub get
 fvm flutter build windows
 
+$makeAppx = Get-ChildItem "D:\Windows Kits\10\bin", "C:\Program Files (x86)\Windows Kits\10\bin", "C:\Program Files\Windows Kits\10\bin" `
+  -Recurse -Filter MakeAppx.exe -ErrorAction SilentlyContinue |
+  Sort-Object FullName -Descending |
+  Select-Object -First 1 -ExpandProperty FullName
+
+if ($makeAppx) {
+  & $makeAppx pack /o /d ..\msix /nv /p .\windows\localsend_msix_helper.msix
+}
+
 Remove-Item "D:\inno" -Force  -Recurse -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path "D:\inno"
 Copy-Item -Path "build\windows\x64\runner\Release\*" -Destination "D:\inno" -Recurse
 Copy-Item -Path "assets\packaging\logo.ico" -Destination "D:\inno"
+Copy-Item -Path "windows\localsend_msix_helper.msix" -Destination "D:\inno" -ErrorAction SilentlyContinue
 
 cd ..
 

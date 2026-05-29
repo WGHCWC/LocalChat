@@ -3,11 +3,11 @@
 ; Copy the contents of the zip to D:\inno, then run this Inno script
 ; Copy app/assets/packaging/logo-256.ico to D:\inno\logo-256.ico
 
-#define MyAppName "LocalSend"
+#define MyAppName "LocalChat"
 #define MyAppVersion "1.17.0"
-#define MyAppPublisher "Tien Do Nam"
-#define MyAppURL "https://localsend.org"
-#define MyAppExeName "localsend_app.exe"
+#define MyAppPublisher "WGHCWC"
+#define MyAppURL "https://github.com/WGHCWC/localsend_chat"
+#define MyAppExeName "localchat_app.exe"
 #define MyAppMsixHelper "localsend_msix_helper.msix"
 
 [Setup]
@@ -27,13 +27,12 @@ DisableProgramGroupPage=yes
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 OutputDir=D:\inno-result
-OutputBaseFilename=localsend
+OutputBaseFilename=localchat-setup
 SetupIconFile=D:\inno\logo.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-SignTool=MySignTool
 ArchitecturesInstallIn64BitMode=x64compatible
 ArchitecturesAllowed=x64compatible
 
@@ -52,7 +51,6 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "hebrew"; MessagesFile: "compiler:Languages\Hebrew.isl"
 Name: "hungarian"; MessagesFile: "compiler:Languages\Hungarian.isl"
-Name: "icelandic"; MessagesFile: "compiler:Languages\Icelandic.isl"
 Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "norwegian"; MessagesFile: "compiler:Languages\Norwegian.isl"
@@ -68,13 +66,16 @@ Name: "chinesesimplified"; MessagesFile: ".\Languages\ChineseSimplified.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "registershare"; Description: "Register Windows Share integration"; GroupDescription: "Windows integration:"; Flags: unchecked
 
 [Files]
 Source: "D:\inno\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "D:\inno\{#MyAppExeName}.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "D:\inno\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "D:\inno\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "D:\inno\{#MyAppMsixHelper}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\inno\{#MyAppMsixHelper}"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "D:\inno\install_msix_helper.ps1"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "D:\inno\uninstall_msix_helper.ps1"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
@@ -83,7 +84,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -Command Add-AppxPackage .\localsend_msix_helper.msix -ExternalLocation $(Get-Location)"; WorkingDir: {app}; Flags: nowait postinstall
+Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\install_msix_helper.ps1"""; WorkingDir: {app}; Description: "Register Windows Share integration"; StatusMsg: "Registering Windows Share integration..."; Tasks: registershare; Flags: runhidden postinstall skipifdoesntexist
 
 [UninstallRun]
-Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -Command Remove-AppxPackage $(Get-AppxPackage com.flutter.localsendapp)"; WorkingDir: {app}; Flags: nowait
+Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\uninstall_msix_helper.ps1"""; WorkingDir: {app}; Flags: nowait runhidden skipifdoesntexist
