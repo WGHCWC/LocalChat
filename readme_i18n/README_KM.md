@@ -1,7 +1,22 @@
 # LocalChat
 
-LocalChat is a LAN chat and file transfer app based on LocalSend.
+LocalChat គឺជាកម្មវិធីជជែកផ្ទាល់ និងផ្ទេរឯកសារនៅលើបណ្តាញមូលដ្ឋាន ដែលបានកែប្រែពី [LocalSend](https://github.com/localsend/localsend)។ វារក្សាទុកមុខងារស្វែងរកឧបករណ៍ក្នុងបណ្តាញមូលដ្ឋាន ការផ្ទេរ HTTPS និងមូលដ្ឋានឆ្លងវេទិការបស់ LocalSend ហើយបន្ថែមមុខងារសម្រាប់បន្ទប់ជជែក ការធ្វើសមកាលកម្មសារ និងការទាញយកឯកសារ។
 
-Current documentation is maintained in [README.md](../README.md). This localized README is intentionally shortened because this fork has its own builds and release channels.
+## មុខងារសំខាន់ៗ
 
-Upstream LocalSend: https://github.com/localsend/localsend
+- ស្វែងរកឧបករណ៍អនឡាញដោយស្វ័យប្រវត្តិនៅក្នុងបណ្តាញមូលដ្ឋានដូចគ្នា ដោយមិនចាំបាច់មានម៉ាស៊ីនមេខាងក្រៅ។
+- គាំទ្រការផ្ញើ និងទទួលសារអក្សរផ្ទាល់ក្នុងបន្ទប់ជជែក LAN។
+- គាំទ្រការធ្វើសមកាលកម្មសាររវាងឧបករណ៍ច្រើន; ឧបករណ៍អនឡាញអាចធ្វើសមកាលកម្មប្រវត្តិសារ។
+- គាំទ្រការផ្ញើឯកសារ រូបភាព មេឌៀ និងអត្ថបទ។
+- អាចទាញយកឯកសារពីសារជជែកដែលមិនទាន់បានរក្សាទុកក្នុងម៉ាស៊ីន។
+- គាំទ្រមើលរូបភាពជាមុន បើកឯកសារ និងបង្ហាញឯកសារមូលដ្ឋានក្នុងកម្មវិធីគ្រប់គ្រងឯកសារ។
+- ស្គាល់តំណក្នុងសារជជែក ហើយបើកដោយកម្មវិធីរុករករបស់ប្រព័ន្ធ។
+- គាំទ្រការបង្កើតសម្រាប់ Android, macOS, Windows, Linux និង iOS។
+
+## ឯកសារ
+
+ឯកសារពេញលេញបច្ចុប្បន្នត្រូវបានថែរក្សានៅក្នុង [README.md](../README.md)។ README ភាសានេះរក្សាទុកតែការណែនាំ LocalChat និងមុខងារសំខាន់ៗប៉ុណ្ណោះ; ព័ត៌មានអំពីការបង្កើត ការចេញផ្សាយ និងអាជ្ញាបណ្ណ សូមមើល README នៅថតមេ។
+
+## ប្រភព
+
+LocalChat ផ្អែកលើគម្រោង open-source LocalSend: https://github.com/localsend/localsend

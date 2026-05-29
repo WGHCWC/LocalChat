@@ -1,7 +1,22 @@
 # LocalChat
 
-LocalChat is a LAN chat and file transfer app based on LocalSend.
+LocalChat は、[LocalSend](https://github.com/localsend/localsend) をベースに変更した、ローカルネットワーク向けのリアルタイムチャットおよびファイル転送アプリです。LocalSend のローカルネットワーク探索、HTTPS 転送、クロスプラットフォーム基盤を維持しつつ、チャットルーム、メッセージ同期、ファイルダウンロード体験を拡張しています。
 
-Current documentation is maintained in [README.md](../README.md). This localized README is intentionally shortened because this fork has its own builds and release channels.
+## 主な機能
 
-Upstream LocalSend: https://github.com/localsend/localsend
+- 外部サーバーに依存せず、同じ LAN 内のオンライン端末を自動検出します。
+- LAN チャットルームでテキストメッセージをリアルタイムに送受信できます。
+- 複数端末間のメッセージ同期に対応し、オンライン端末は履歴を同期できます。
+- ファイル、画像、メディア、テキストの送信に対応します。
+- まだローカルに保存されていないファイルを、チャットメッセージからダウンロードできます。
+- 画像プレビュー、ファイルを開く操作、ファイルマネージャーでのローカルファイル表示に対応します。
+- チャット内のリンクを認識し、システムブラウザーで開けます。
+- Android、macOS、Windows、Linux、iOS 向けにビルドできます。
+
+## ドキュメント
+
+現在の完全なドキュメントは [README.md](../README.md) で管理されています。この日本語 README では LocalChat の概要と主な機能のみを記載しています。ビルド、配布、ライセンスについてはルート README を参照してください。
+
+## 由来
+
+LocalChat は上流のオープンソースプロジェクト LocalSend をベースにしています: https://github.com/localsend/localsend

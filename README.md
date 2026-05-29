@@ -6,8 +6,6 @@ LocalChat is a LAN chat and file transfer app for nearby devices. It is built fr
 
 LocalChat is based on [LocalSend](https://github.com/localsend/localsend). The original LocalSend project is a free, open-source local-network file sharing app. This repository keeps the upstream foundation and applies LocalChat-specific changes for LAN chat, message synchronization, download behavior, and platform packaging.
 
-LocalSend names may still appear in package identifiers, protocol references, generated plugin names, or migration-sensitive storage paths where changing them would affect compatibility.
-
 ## Features
 
 - Discover nearby devices on the local network without an external server.
@@ -67,4 +65,6 @@ For macOS builds without an Apple Developer account, packages can be ad-hoc sign
 
 ## License
 
-LocalChat is derived from LocalSend and keeps the upstream license and notices in this repository. Review `LICENSE` and platform-specific notices before redistributing binaries.
+LocalChat is open-source under the Apache License 2.0, the same license used by upstream LocalSend. See [LICENSE](LICENSE) for the full license text.
+
+LocalChat is derived from LocalSend and keeps the upstream license and notices in this repository. Retain the Apache License 2.0 terms, copyright notices, and platform-specific notices when redistributing source code or binaries.
