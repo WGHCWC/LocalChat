@@ -1,6 +1,6 @@
 {
   "locale": "Bahasa Inggeris",
-  "appName": "LocalSend",
+  "appName": "LocalChat",
   "general": {
     "accept": "Terima",
     "accepted": "Diterima",
@@ -107,7 +107,7 @@
       "minimizeToTray": "Minimumkan ke dulang sistem/menu bar apabila menutup",
       "launchAtStartup": "Mula automatik selepas log masuk",
       "launchMinimized": "Mula automatik: Mula tersembunyi",
-      "showInContextMenu": "Tunjukkan LocalSend dalam menu konteks",
+      "showInContextMenu": "Tunjukkan LocalChat dalam menu konteks",
       "animations": "Animasi",
       "saveWindowPlacementWindows": "Simpan kedudukan tetingkap selepas keluar"
     },
@@ -149,7 +149,7 @@
     },
     "other": {
       "title": "Lain-lain",
-      "support": "Sokong LocalSend",
+      "support": "Sokong LocalChat",
       "donate": "Derma",
       "privacyPolicy": "Dasar Privasi",
       "termsOfUse": "Syarat Penggunaan"
@@ -208,7 +208,7 @@
   "receiveOptionsPage": {
     "title": "Pilihan",
     "destination": "@:settingsTab.receive.destination",
-    "appDirectory": "(folder LocalSend)",
+    "appDirectory": "(folder LocalChat)",
     "saveToGallery": "@:settingsTab.receive.saveToGallery",
     "saveToGalleryOff": "Dimatikan secara automatik kerana terdapat folder."
   },
@@ -250,12 +250,12 @@
     "requirePin": "Memerlukan PIN",
     "pinHint": "PIN ialah \"{pin}\"",
     "pendingRequests": "Permintaan yang masih belum selesai: {n}",
-    "encryptionHint": "LocalSend menggunakan sijil yang ditandatangani sendiri. Anda perlu menerimanya di pelayar anda."
+    "encryptionHint": "LocalChat menggunakan sijil yang ditandatangani sendiri. Anda perlu menerimanya di pelayar anda."
   },
   "aboutPage": {
-    "title": "Tentang LocalSend",
+    "title": "Tentang LocalChat",
     "description": [
-      "LocalSend adalah aplikasi percuma dan sumber terbuka yang membolehkan anda berkongsi fail dan mesej secara selamat dan terjamin dengan peranti berdekatan yang berada dalam rangkaian tempatan anda tanpa memerlukan sebarang sambungan internet.",
+      "LocalChat adalah aplikasi percuma dan sumber terbuka yang membolehkan anda berkongsi fail dan mesej secara selamat dan terjamin dengan peranti berdekatan yang berada dalam rangkaian tempatan anda tanpa memerlukan sebarang sambungan internet.",
       "Aplikasi ini tersedia di Android, iOS, macOS, Windows dan Linux. Anda boleh mencari semua pilihan untuk memuat turun di laman web rasmi."
     ],
     "author": "Pengarang",
@@ -265,7 +265,7 @@
   },
   "donationPage": {
     "title": "Derma",
-    "info": "LocalSend adalah percuma, sumber terbuka dan tanpa iklan. Jika anda menyukai aplikasi ini, anda boleh menyokong pembangunannya dengan derma.",
+    "info": "LocalChat adalah percuma, sumber terbuka dan tanpa iklan. Jika anda menyukai aplikasi ini, anda boleh menyokong pembangunannya dengan derma.",
     "donate": "Derma {amount}",
     "thanks": "Terima kasih banyak!",
     "restore": "Pulihkan pembelian"
@@ -404,7 +404,7 @@
     },
     "localNetworkUnauthorized": {
       "title": "@:dialogs.noPermission.title",
-      "description": "LocalSend tidak dapat mencari peranti lain tanpa mempunyai kebenaran untuk mengimbas rangkaian tempatan. Sila berikan kebenaran ini dalam tetapan.",
+      "description": "LocalChat tidak dapat mencari peranti lain tanpa mempunyai kebenaran untuk mengimbas rangkaian tempatan. Sila berikan kebenaran ini dalam tetapan.",
       "gotoSettings": "Tetapan"
     },
     "messageInput": {
@@ -453,7 +453,7 @@
       "title": "Mod penghantaran",
       "single": "Menghantar fail kepada satu penerima. Pilihan akan dibersihkan selepas pemindahan fail selesai.",
       "multiple": "Menghantar fail kepada beberapa penerima. Pilihan tidak akan dibersihkan.",
-      "link": "Penerima yang tidak mempunyai LocalSend dipasang boleh memuat turun fail yang dipilih dengan membuka pautan dalam pelayar mereka."
+      "link": "Penerima yang tidak mempunyai LocalChat dipasang boleh memuat turun fail yang dipilih dengan membuka pautan dalam pelayar mereka."
     },
     "zoom": {
       "title": "URL"
@@ -469,7 +469,7 @@
   },
   "tray": {
     "open": "@:general.open",
-    "close": "Keluar LocalSend",
+    "close": "Keluar LocalChat",
     "closeWindows": "Keluar",
     "@info": "Garis Panduan Apple sangat ketat tentang perkataan \"tutup\"."
   },
@@ -515,7 +515,7 @@
     "@info": "Terjemahan untuk alat pemilihan Media untuk Android dan iPhone"
   },
   "networkInterfacesPage": {
-    "info": "Secara lalai, LocalSend menggunakan semua antara muka rangkaian tersedia. Anda boleh memulaukan rangkaian yang tidak diingini. Anda perlu mula semula pelayan untuk mengenakan perubahan.",
+    "info": "Secara lalai, LocalChat menggunakan semua antara muka rangkaian tersedia. Anda boleh memulaukan rangkaian yang tidak diingini. Anda perlu mula semula pelayan untuk mengenakan perubahan.",
     "title": "Antara Muka Rangkaian",
     "preview": "Pratonton",
     "whitelist": "Senarai Putih",

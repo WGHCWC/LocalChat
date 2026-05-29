@@ -42,7 +42,7 @@ class TranslationsMn extends Translations {
   @override
   String get locale => 'Mongolian';
   @override
-  String get appName => 'LocalSend';
+  String get appName => 'LocalChat';
   @override
   late final _TranslationsGeneralMn general = _TranslationsGeneralMn._(_root);
   @override
@@ -336,7 +336,7 @@ class _TranslationsReceiveOptionsPageMn extends TranslationsReceiveOptionsPageEn
   @override
   String get destination => _root.settingsTab.receive.destination;
   @override
-  String get appDirectory => '(LocalSend-н хавтас)';
+  String get appDirectory => '(LocalChat-н хавтас)';
   @override
   String get saveToGallery => _root.settingsTab.receive.saveToGallery;
   @override
@@ -403,7 +403,7 @@ class _TranslationsWebSharePageMn extends TranslationsWebSharePageEn {
   @override
   String pinHint({required Object pin}) => 'PIN код: "${pin}"';
   @override
-  String get encryptionHint => 'LocalSend нь өөрийн гарын үсэг ашигладаг тул үүнийг browser дээрээ хүлээн зөвшөөрнө үү.';
+  String get encryptionHint => 'LocalChat нь өөрийн гарын үсэг ашигладаг тул үүнийг browser дээрээ хүлээн зөвшөөрнө үү.';
   @override
   String pendingRequests({required Object n}) => 'Хүлээгдэж буй хүсэлт: ${n}';
 }
@@ -416,10 +416,10 @@ class _TranslationsAboutPageMn extends TranslationsAboutPageEn {
 
   // Translations
   @override
-  String get title => 'LocalSend танилцуулга';
+  String get title => 'LocalChat танилцуулга';
   @override
   List<String> get description => [
-    'LocalSend нь үнэгүй, нээлттэй эхийн програм бөгөөд танд интернет холболт шаардлагагүйгээр өөрийн дотоод сүлжээгээр ойролцоох төхөөрөмжүүдтэй файл, мессежийг аюулгүйгээр хуваалцах боломтой.',
+    'LocalChat нь үнэгүй, нээлттэй эхийн програм бөгөөд танд интернет холболт шаардлагагүйгээр өөрийн дотоод сүлжээгээр ойролцоох төхөөрөмжүүдтэй файл, мессежийг аюулгүйгээр хуваалцах боломтой.',
     'Энэ програмыг Android, iOS, macOS, Windows болон Linux дээр ашиглах боломжтой. Та албан ёсны веб сайтнаас татах боломжтой.',
   ];
   @override
@@ -441,7 +441,7 @@ class _TranslationsDonationPageMn extends TranslationsDonationPageEn {
   String get title => 'Хандив';
   @override
   String get info =>
-      'LocalSend нь үнэ төлбөргүй, нээлттэй эх сурвалжтай бөгөөд ямар ч зар сурталчилгаагүй. Хэрэв энэ програм таалагдсан бол хандивын мөнгөөр хөгжлийг дэмжих боломжтой.';
+      'LocalChat нь үнэ төлбөргүй, нээлттэй эх сурвалжтай бөгөөд ямар ч зар сурталчилгаагүй. Хэрэв энэ програм таалагдсан бол хандивын мөнгөөр хөгжлийг дэмжих боломжтой.';
   @override
   String donate({required Object amount}) => '${amount} аар хандивлах';
   @override
@@ -574,7 +574,7 @@ class _TranslationsSettingsTabGeneralMn extends TranslationsSettingsTabGeneralEn
   @override
   String get launchMinimized => 'Авто эхлүүлэх: Нуугдсан эхлэх';
   @override
-  String get showInContextMenu => 'Системийн цэсэнд LocalSend-д харуулах';
+  String get showInContextMenu => 'Системийн цэсэнд LocalChat-д харуулах';
   @override
   String get animations => 'Анимэйшн';
 }
@@ -664,7 +664,7 @@ class _TranslationsSettingsTabOtherMn extends TranslationsSettingsTabOtherEn {
   @override
   String get title => 'Бусад';
   @override
-  String get support => 'LocalSend-г дэмжих';
+  String get support => 'LocalChat-г дэмжих';
   @override
   String get donate => 'Хандив өгөх';
   @override

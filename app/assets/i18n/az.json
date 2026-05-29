@@ -1,6 +1,6 @@
 {
   "locale": "Azərbaycanca",
-  "appName": "LocalSend",
+  "appName": "LocalChat",
   "general": {
     "accept": "Qəbul et",
     "accepted": "Qəbul edildi",
@@ -108,7 +108,7 @@
       "minimizeToTray": "Bağlayanda Sistem Sahəsi/Menyu Cizgisinə kiçilt",
       "launchAtStartup": "Girişdən sonra birbaşa başlat",
       "launchMinimized": "Birbaşa başlat: Gizli başlat",
-      "showInContextMenu": "Məzmun menyusunda LocalSend-i göstər",
+      "showInContextMenu": "Məzmun menyusunda LocalChat-i göstər",
       "animations": "Animasiyalar"
     },
     "receive": {
@@ -150,7 +150,7 @@
     },
     "other": {
       "title": "Digər",
-      "support": "LocalSend-i dəstəklə",
+      "support": "LocalChat-i dəstəklə",
       "donate": "İanə et",
       "privacyPolicy": "Məxfilik siyasəti",
       "termsOfUse": "İstifadə şərtləri"
@@ -190,7 +190,7 @@
     },
     "localNetworkUnauthorized": {
       "title": "@:dialogs.noPermission.title",
-      "description": "LocalSend lokal şəbəkəni skan etmək icazəsi olmadan digər cihazları tapa bilmir. Zəhmət olmasa, parametrlərdən bu icazəni verin.",
+      "description": "LocalChat lokal şəbəkəni skan etmək icazəsi olmadan digər cihazları tapa bilmir. Zəhmət olmasa, parametrlərdən bu icazəni verin.",
       "gotoSettings": "Parametrlər"
     },
     "quickSaveFromFavoritesNotice": {
@@ -208,7 +208,7 @@
       "title": "Göndərmə rejimləri",
       "single": "Faylları bir cihaza göndərir. Faylların ötürülməsi başa çatdıqdan sonra seçim silinəcək.",
       "multiple": "Faylları birdən çox cihaza göndərir. Faylların ötürülməsi tamamlandıqdan sonra seçim silinməyəcək.",
-      "link": "LocalSend-i quraşdırmamış alıcılar linki brauzerlərində açaraq seçilmiş faylları endirə bilərlər."
+      "link": "LocalChat-i quraşdırmamış alıcılar linki brauzerlərində açaraq seçilmiş faylları endirə bilərlər."
     },
     "favoriteDialog": {
       "addFavorite": "Əlavə et",
@@ -323,10 +323,10 @@
     "autoAccept": "Sorğuları avtomatik qəbul et",
     "requirePin": "PIN tələb et",
     "pinHint": "Sizin PIN: \"{pin}\"",
-    "encryptionHint": "LocalSend özü imzalanmış sertifikatdan istifadə edir. Siz onu brauzerinizdə qəbul etməlisiniz."
+    "encryptionHint": "LocalChat özü imzalanmış sertifikatdan istifadə edir. Siz onu brauzerinizdə qəbul etməlisiniz."
   },
   "networkInterfacesPage": {
-    "info": "Defolt olaraq, LocalSend bütün mövcud şəbəkə interfeyslərindən istifadə edir. Burada istənilməyən şəbəkələri istisna edə bilərsiniz. Dəyişiklikləri tətbiq etmək üçün serveri yenidən başlatmalısınız.",
+    "info": "Defolt olaraq, LocalChat bütün mövcud şəbəkə interfeyslərindən istifadə edir. Burada istənilməyən şəbəkələri istisna edə bilərsiniz. Dəyişiklikləri tətbiq etmək üçün serveri yenidən başlatmalısınız.",
     "whitelist": "Ağ siyahı",
     "blacklist": "Qara siyahı",
     "title": "Şəbəkə interfeysləri",
@@ -383,7 +383,7 @@
     "closeWindows": "Çıxış",
     "@info": "Apple təlimatları \"bağla\" ifadələri ilə bağlı çox ciddidir.",
     "open": "@:general.open",
-    "close": "LocalSend-dən çıx"
+    "close": "LocalChat-dən çıx"
   },
   "apkPickerPage": {
     "apps": "{n} tətbiq",
@@ -403,7 +403,7 @@
   "receiveOptionsPage": {
     "title": "Seçimlər",
     "destination": "@:settingsTab.receive.destination",
-    "appDirectory": "(LocalSend qovluğu)",
+    "appDirectory": "(LocalChat qovluğu)",
     "saveToGallery": "@:settingsTab.receive.saveToGallery",
     "saveToGalleryOff": "Qovluqlar olduğu üçün avtomatik söndürülür."
   },
@@ -424,7 +424,7 @@
     "savedToGallery": "Qalereyada saxlanıldı"
   },
   "donationPage": {
-    "info": "LocalSend pulsuz, açıq mənbəlidir və heç bir reklam yoxdur. Proqramı bəyənirsinizsə, ianə ilə inkişafını dəstəkləyə bilərsiniz.",
+    "info": "LocalChat pulsuz, açıq mənbəlidir və heç bir reklam yoxdur. Proqramı bəyənirsinizsə, ianə ilə inkişafını dəstəkləyə bilərsiniz.",
     "title": "İanə et",
     "donate": "{amount} ianə et",
     "thanks": "Çox təşəkkür edirəm!",
@@ -435,12 +435,12 @@
   },
   "aboutPage": {
     "description": [
-      "LocalSend internet bağlantısına ehtiyac olmadan lokal şəbəkə üzərindən yaxınlıqdakı cihazlarla faylları və mesajları təhlükəsiz paylaşmağa imkan verən pulsuz, açıq mənbəli proqramdır.",
+      "LocalChat internet bağlantısına ehtiyac olmadan lokal şəbəkə üzərindən yaxınlıqdakı cihazlarla faylları və mesajları təhlükəsiz paylaşmağa imkan verən pulsuz, açıq mənbəli proqramdır.",
       "Bu proqram Android, iOS, macOS, Windows və Linux sistemlərində mövcuddur. Bütün yükləmə variantlarını rəsmi saytda tapa bilərsiniz."
     ],
     "author": "Müəllif",
     "contributors": "Töhfə verənlər",
-    "title": "LocalSend haqqında",
+    "title": "LocalChat haqqında",
     "packagers": "Paketləyənlər",
     "translators": "Tərcüməçilər"
   },

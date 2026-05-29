@@ -42,7 +42,7 @@ class TranslationsAz extends Translations {
   @override
   String get locale => 'Azərbaycanca';
   @override
-  String get appName => 'LocalSend';
+  String get appName => 'LocalChat';
   @override
   late final _TranslationsGeneralAz general = _TranslationsGeneralAz._(_root);
   @override
@@ -386,7 +386,7 @@ class _TranslationsWebSharePageAz extends TranslationsWebSharePageEn {
   @override
   String pinHint({required Object pin}) => 'Sizin PIN: "${pin}"';
   @override
-  String get encryptionHint => 'LocalSend özü imzalanmış sertifikatdan istifadə edir. Siz onu brauzerinizdə qəbul etməlisiniz.';
+  String get encryptionHint => 'LocalChat özü imzalanmış sertifikatdan istifadə edir. Siz onu brauzerinizdə qəbul etməlisiniz.';
 }
 
 // Path: networkInterfacesPage
@@ -398,7 +398,7 @@ class _TranslationsNetworkInterfacesPageAz extends TranslationsNetworkInterfaces
   // Translations
   @override
   String get info =>
-      'Defolt olaraq, LocalSend bütün mövcud şəbəkə interfeyslərindən istifadə edir. Burada istənilməyən şəbəkələri istisna edə bilərsiniz. Dəyişiklikləri tətbiq etmək üçün serveri yenidən başlatmalısınız.';
+      'Defolt olaraq, LocalChat bütün mövcud şəbəkə interfeyslərindən istifadə edir. Burada istənilməyən şəbəkələri istisna edə bilərsiniz. Dəyişiklikləri tətbiq etmək üçün serveri yenidən başlatmalısınız.';
   @override
   String get whitelist => 'Ağ siyahı';
   @override
@@ -529,7 +529,7 @@ class _TranslationsTrayAz extends TranslationsTrayEn {
   @override
   String get open => _root.general.open;
   @override
-  String get close => 'LocalSend-dən çıx';
+  String get close => 'LocalChat-dən çıx';
 }
 
 // Path: apkPickerPage
@@ -582,7 +582,7 @@ class _TranslationsReceiveOptionsPageAz extends TranslationsReceiveOptionsPageEn
   @override
   String get destination => _root.settingsTab.receive.destination;
   @override
-  String get appDirectory => '(LocalSend qovluğu)';
+  String get appDirectory => '(LocalChat qovluğu)';
   @override
   String get saveToGallery => _root.settingsTab.receive.saveToGallery;
   @override
@@ -615,7 +615,7 @@ class _TranslationsDonationPageAz extends TranslationsDonationPageEn {
   // Translations
   @override
   String get info =>
-      'LocalSend pulsuz, açıq mənbəlidir və heç bir reklam yoxdur. Proqramı bəyənirsinizsə, ianə ilə inkişafını dəstəkləyə bilərsiniz.';
+      'LocalChat pulsuz, açıq mənbəlidir və heç bir reklam yoxdur. Proqramı bəyənirsinizsə, ianə ilə inkişafını dəstəkləyə bilərsiniz.';
   @override
   String get title => 'İanə et';
   @override
@@ -646,7 +646,7 @@ class _TranslationsAboutPageAz extends TranslationsAboutPageEn {
   // Translations
   @override
   List<String> get description => [
-    'LocalSend internet bağlantısına ehtiyac olmadan lokal şəbəkə üzərindən yaxınlıqdakı cihazlarla faylları və mesajları təhlükəsiz paylaşmağa imkan verən pulsuz, açıq mənbəli proqramdır.',
+    'LocalChat internet bağlantısına ehtiyac olmadan lokal şəbəkə üzərindən yaxınlıqdakı cihazlarla faylları və mesajları təhlükəsiz paylaşmağa imkan verən pulsuz, açıq mənbəli proqramdır.',
     'Bu proqram Android, iOS, macOS, Windows və Linux sistemlərində mövcuddur. Bütün yükləmə variantlarını rəsmi saytda tapa bilərsiniz.',
   ];
   @override
@@ -654,7 +654,7 @@ class _TranslationsAboutPageAz extends TranslationsAboutPageEn {
   @override
   String get contributors => 'Töhfə verənlər';
   @override
-  String get title => 'LocalSend haqqında';
+  String get title => 'LocalChat haqqında';
   @override
   String get packagers => 'Paketləyənlər';
   @override
@@ -798,7 +798,7 @@ class _TranslationsSettingsTabGeneralAz extends TranslationsSettingsTabGeneralEn
   @override
   String get launchMinimized => 'Birbaşa başlat: Gizli başlat';
   @override
-  String get showInContextMenu => 'Məzmun menyusunda LocalSend-i göstər';
+  String get showInContextMenu => 'Məzmun menyusunda LocalChat-i göstər';
   @override
   String get animations => 'Animasiyalar';
 }
@@ -896,7 +896,7 @@ class _TranslationsSettingsTabOtherAz extends TranslationsSettingsTabOtherEn {
   @override
   String get title => 'Digər';
   @override
-  String get support => 'LocalSend-i dəstəklə';
+  String get support => 'LocalChat-i dəstəklə';
   @override
   String get donate => 'İanə et';
   @override
@@ -991,7 +991,7 @@ class _TranslationsDialogsLocalNetworkUnauthorizedAz extends TranslationsDialogs
   String get title => _root.dialogs.noPermission.title;
   @override
   String get description =>
-      'LocalSend lokal şəbəkəni skan etmək icazəsi olmadan digər cihazları tapa bilmir. Zəhmət olmasa, parametrlərdən bu icazəni verin.';
+      'LocalChat lokal şəbəkəni skan etmək icazəsi olmadan digər cihazları tapa bilmir. Zəhmət olmasa, parametrlərdən bu icazəni verin.';
   @override
   String get gotoSettings => 'Parametrlər';
 }
@@ -1038,7 +1038,7 @@ class _TranslationsDialogsSendModeHelpAz extends TranslationsDialogsSendModeHelp
   @override
   String get multiple => 'Faylları birdən çox cihaza göndərir. Faylların ötürülməsi tamamlandıqdan sonra seçim silinməyəcək.';
   @override
-  String get link => 'LocalSend-i quraşdırmamış alıcılar linki brauzerlərində açaraq seçilmiş faylları endirə bilərlər.';
+  String get link => 'LocalChat-i quraşdırmamış alıcılar linki brauzerlərində açaraq seçilmiş faylları endirə bilərlər.';
 }
 
 // Path: dialogs.favoriteDialog

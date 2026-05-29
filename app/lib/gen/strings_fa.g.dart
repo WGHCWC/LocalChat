@@ -42,7 +42,7 @@ class TranslationsFa extends Translations {
   @override
   String get locale => 'فارسی';
   @override
-  String get appName => 'لوکال‌سِند';
+  String get appName => 'LocalChat';
   @override
   late final _TranslationsGeneralFa general = _TranslationsGeneralFa._(_root);
   @override
@@ -761,7 +761,7 @@ class _TranslationsNetworkInterfacesPageFa extends TranslationsNetworkInterfaces
   String get title => 'رابط‌های شبکه';
   @override
   String get info =>
-      'به طور پیش فرض، LocalSend از تمام رابط های شبکه موجود استفاده می کند. در اینجا می توانید شبکه های ناخواسته را حذف کنید. برای اعمال تغییرات باید سرور را ریستارت کنید.';
+      'به طور پیش فرض، LocalChat از تمام رابط های شبکه موجود استفاده می کند. در اینجا می توانید شبکه های ناخواسته را حذف کنید. برای اعمال تغییرات باید سرور را ریستارت کنید.';
   @override
   String get preview => 'پیشنمایش';
   @override

@@ -1,6 +1,6 @@
 {
   "locale": "Türkçe",
-  "appName": "LocalSend",
+  "appName": "LocalChat",
   "general": {
     "accept": "Kabul et",
     "accepted": "Kabul edildi",
@@ -108,7 +108,7 @@
       "minimizeToTray": "Çıkış: Simge durumuna küçült",
       "launchAtStartup": "Giriş yapıldıktan sonra otomatik başlat",
       "launchMinimized": "Otomatik başlatma: Gizli Başlatma",
-      "showInContextMenu": "LocalSend'i bağlam menüsünde göster",
+      "showInContextMenu": "LocalChat'i bağlam menüsünde göster",
       "animations": "Animasyonlar"
     },
     "receive": {
@@ -149,7 +149,7 @@
     },
     "other": {
       "title": "Diğer",
-      "support": "LocalSend'i destekle",
+      "support": "LocalChat'i destekle",
       "donate": "Bağış yap",
       "privacyPolicy": "Gizlilik politikası",
       "termsOfUse": "Kullanım koşulları"
@@ -208,7 +208,7 @@
   "receiveOptionsPage": {
     "title": "Seçenekler",
     "destination": "@:settingsTab.receive.destination",
-    "appDirectory": "(LocalSend klasörü)",
+    "appDirectory": "(LocalChat klasörü)",
     "saveToGallery": "@:settingsTab.receive.saveToGallery",
     "saveToGalleryOff": "Otomatik olarak kapanır çünkü bunlar klasör."
   },
@@ -257,13 +257,13 @@
     "autoAccept": "İstekleri otomatik olarak kabul et",
     "requirePin": "PIN gerektir",
     "pinHint": "PIN \"{pin}\"",
-    "encryptionHint": "LocalSend, tarayıcıda kabul etmeniz gereken kendi-üretimli bir sertifika kullanır.",
+    "encryptionHint": "LocalChat, tarayıcıda kabul etmeniz gereken kendi-üretimli bir sertifika kullanır.",
     "pendingRequests": "Bekleyen istekler: {n}"
   },
   "aboutPage": {
-    "title": "LocalSend hakkında",
+    "title": "LocalChat hakkında",
     "description": [
-      "LocalSend, internet bağlantısına ihtiyaç duymadan yerel ağınız üzerinden yakınınızdaki cihazlarla dosya ve mesajlarınızı güvenli bir şekilde paylaşmanıza olanak tanıyan özgür ve açık kaynaklı bir uygulamadır.",
+      "LocalChat, internet bağlantısına ihtiyaç duymadan yerel ağınız üzerinden yakınınızdaki cihazlarla dosya ve mesajlarınızı güvenli bir şekilde paylaşmanıza olanak tanıyan özgür ve açık kaynaklı bir uygulamadır.",
       "Bu uygulama Android, iOS, macOS, Windows ve Linux'ta mevcuttur. Tüm indirme seçeneklerini resmi ana sayfada bulabilirsiniz."
     ],
     "author": "Yazar",
@@ -273,7 +273,7 @@
   },
   "donationPage": {
     "title": "Bağış yap",
-    "info": "LocalSend ücretsiz, açık kaynaklı ve reklamsız bir uygulamadır. Eğer uygulamayı beğendiyseniz, bağış yaparak uygulamanın gelişimine katkıda bulunabilirsiniz.",
+    "info": "LocalChat ücretsiz, açık kaynaklı ve reklamsız bir uygulamadır. Eğer uygulamayı beğendiyseniz, bağış yaparak uygulamanın gelişimine katkıda bulunabilirsiniz.",
     "donate": "Bağışta bulun {amount}",
     "thanks": "Çok teşekkür ederim!",
     "restore": "Satın alınanları geri yükle"
@@ -345,7 +345,7 @@
     },
     "localNetworkUnauthorized": {
       "title": "@:dialogs.noPermission.title",
-      "description": "LocalSend, lokal ağı tarama iznine sahip olmadan başka cihazları bulamıyor. Lütfen bu izni ayarlarda verin.",
+      "description": "LocalChat, lokal ağı tarama iznine sahip olmadan başka cihazları bulamıyor. Lütfen bu izni ayarlarda verin.",
       "gotoSettings": "Ayarlar"
     },
     "messageInput": {
@@ -386,7 +386,7 @@
       "title": "Gönderme Modu",
       "single": "Dosyaları bir alıcıya gönderir. Seçim, bitmiş dosya aktarımından sonra temizlenir.",
       "multiple": "Dosyaları birden çok alıcıya gönderir. Seçim temizlenmeyecektir.",
-      "link": "LocalSend yüklü olmayan alıcılar, tarayıcılarındaki bağlantıyı açarak seçilen dosyaları indirebilir."
+      "link": "LocalChat yüklü olmayan alıcılar, tarayıcılarındaki bağlantıyı açarak seçilen dosyaları indirebilir."
     },
     "zoom": {
       "title": "URL"
@@ -411,7 +411,7 @@
   "tray": {
     "@info": "Apple'ın yönergeleri, 'kapat' ifadesi konusunda çok katıdır.",
     "open": "@:general.open",
-    "close": "LocalSend'den çık",
+    "close": "LocalChat'den çık",
     "closeWindows": "Çıkış"
   },
   "web": {
@@ -460,6 +460,6 @@
     "preview": "Önizle",
     "whitelist": "Beyaz liste",
     "blacklist": "Kara liste",
-    "info": "Varsayılan olarak, LocalSend mevcut olan tüm ağları kullanır. Burada istenmeyen ağları engelleyebilirsiniz. Değişikliklerin uygulanması için sunucuyu yeniden başlatmanız gerekir."
+    "info": "Varsayılan olarak, LocalChat mevcut olan tüm ağları kullanır. Burada istenmeyen ağları engelleyebilirsiniz. Değişikliklerin uygulanması için sunucuyu yeniden başlatmanız gerekir."
   }
 }

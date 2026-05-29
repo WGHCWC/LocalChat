@@ -16,6 +16,8 @@ part 'packagers.dart';
 part 'translators.dart';
 
 final _translatorWithGithubRegex = RegExp(r'(.+) \(@([\w\-_]+)\)');
+const _localChatRepositoryUrl = 'https://github.com/WGHCWC/localsend_chat';
+const _localSendRepositoryUrl = 'https://github.com/localsend/localsend';
 
 class AboutPage extends StatelessWidget {
   const AboutPage();
@@ -38,15 +40,26 @@ class AboutPage extends StatelessWidget {
           Center(
             child: TextButton(
               onPressed: () async {
-                await launchUrl(Uri.parse('https://localsend.org'));
+                await launchUrl(
+                  Uri.parse(_localChatRepositoryUrl),
+                  mode: LaunchMode.externalApplication,
+                );
               },
-              child: const Text('localsend.org'),
+              child: const Text('LocalChat repository'),
             ),
           ),
           const SizedBox(height: 10),
           Text(t.aboutPage.description.join('\n\n')),
+          const SizedBox(height: 10),
+          const Text(
+            'LocalChat is based on LocalSend.',
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 20),
-          Text(t.aboutPage.author, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            t.aboutPage.author,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           Text.rich(
             _buildContributor(
               label: 'Tien Do Nam (@Tienisto)',
@@ -54,17 +67,20 @@ class AboutPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text(t.aboutPage.contributors, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            t.aboutPage.contributors,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           ..._contributors.map((contributor) {
             return Text.rich(
-              _buildContributor(
-                label: contributor,
-                primaryColor: primaryColor,
-              ),
+              _buildContributor(label: contributor, primaryColor: primaryColor),
             );
           }),
           const SizedBox(height: 20),
-          Text(t.aboutPage.packagers, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            t.aboutPage.packagers,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           Table(
             columnWidths: const {
               0: IntrinsicColumnWidth(),
@@ -80,15 +96,13 @@ class AboutPage extends StatelessWidget {
                     ),
                     Text.rich(
                       TextSpan(
-                        children: e.value.mapIndexed(
-                          (index, translator) {
-                            return _buildContributor(
-                              label: translator,
-                              primaryColor: primaryColor,
-                              newLine: index != 0,
-                            );
-                          },
-                        ).toList(),
+                        children: e.value.mapIndexed((index, translator) {
+                          return _buildContributor(
+                            label: translator,
+                            primaryColor: primaryColor,
+                            newLine: index != 0,
+                          );
+                        }).toList(),
                       ),
                     ),
                   ],
@@ -97,7 +111,10 @@ class AboutPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          Text(t.aboutPage.translators, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            t.aboutPage.translators,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           Table(
             columnWidths: const {
               0: IntrinsicColumnWidth(),
@@ -113,15 +130,13 @@ class AboutPage extends StatelessWidget {
                     ),
                     Text.rich(
                       TextSpan(
-                        children: e.value.mapIndexed(
-                          (index, translator) {
-                            return _buildContributor(
-                              label: translator,
-                              primaryColor: primaryColor,
-                              newLine: index != 0,
-                            );
-                          },
-                        ).toList(),
+                        children: e.value.mapIndexed((index, translator) {
+                          return _buildContributor(
+                            label: translator,
+                            primaryColor: primaryColor,
+                            newLine: index != 0,
+                          );
+                        }).toList(),
                       ),
                     ),
                   ],
@@ -135,25 +150,27 @@ class AboutPage extends StatelessWidget {
             children: [
               TextButton(
                 onPressed: () async {
-                  await launchUrl(Uri.parse('https://localsend.org'));
+                  await launchUrl(
+                    Uri.parse(_localChatRepositoryUrl),
+                    mode: LaunchMode.externalApplication,
+                  );
                 },
-                child: const Text('Homepage'),
+                child: const Text('LocalChat Source Code'),
               ),
               TextButton(
                 onPressed: () async {
-                  await launchUrl(Uri.parse('https://github.com/localsend/localsend'), mode: LaunchMode.externalApplication);
+                  await launchUrl(
+                    Uri.parse(_localSendRepositoryUrl),
+                    mode: LaunchMode.externalApplication,
+                  );
                 },
-                child: const Text('Source Code (Github)'),
+                child: const Text('Upstream LocalSend'),
               ),
               TextButton(
                 onPressed: () async {
-                  await launchUrl(Uri.parse('https://codeberg.org/localsend/localsend'), mode: LaunchMode.externalApplication);
-                },
-                child: const Text('Source Code (Codeberg)'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  await launchUrl(Uri.parse('https://www.apache.org/licenses/LICENSE-2.0'));
+                  await launchUrl(
+                    Uri.parse('https://www.apache.org/licenses/LICENSE-2.0'),
+                  );
                 },
                 child: const Text('Apache License 2.0'),
               ),
@@ -179,7 +196,11 @@ class AboutPage extends StatelessWidget {
 }
 
 /// Displays the contributor name and links to their github profile.
-InlineSpan _buildContributor({required String label, required Color primaryColor, bool newLine = false}) {
+InlineSpan _buildContributor({
+  required String label,
+  required Color primaryColor,
+  bool newLine = false,
+}) {
   final newLineStr = newLine ? '\n' : '';
 
   if (label.startsWith('@')) {
@@ -189,7 +210,10 @@ InlineSpan _buildContributor({required String label, required Color primaryColor
       style: TextStyle(color: primaryColor),
       recognizer: TapGestureRecognizer()
         ..onTap = () async {
-          await launchUrl(Uri.parse('https://github.com/${label.substring(1)}'), mode: LaunchMode.externalApplication);
+          await launchUrl(
+            Uri.parse('https://github.com/${label.substring(1)}'),
+            mode: LaunchMode.externalApplication,
+          );
         },
     );
   }
@@ -208,7 +232,10 @@ InlineSpan _buildContributor({required String label, required Color primaryColor
           style: TextStyle(color: primaryColor),
           recognizer: TapGestureRecognizer()
             ..onTap = () async {
-              await launchUrl(Uri.parse('https://github.com/$githubName'), mode: LaunchMode.externalApplication);
+              await launchUrl(
+                Uri.parse('https://github.com/$githubName'),
+                mode: LaunchMode.externalApplication,
+              );
             },
         ),
       ],

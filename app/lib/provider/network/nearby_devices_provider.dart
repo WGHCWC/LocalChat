@@ -10,7 +10,7 @@ import 'package:localsend_app/provider/logging/discovery_logs_provider.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
 /// This provider is responsible for:
-/// - Scanning the network for other LocalSend instances
+/// - Scanning the network for other LocalChat instances
 /// - Keeping track of all found devices (they are only stored in RAM)
 ///
 /// Use [scanProvider] to have a high-level API to perform discovery operations.
@@ -134,7 +134,7 @@ class UnregisterSignalingDeviceAction extends ReduxAction<NearbyDevicesService, 
 }
 
 /// It does not really "scan".
-/// It just sends an announcement which will cause a response on every other LocalSend member of the network.
+/// It just sends an announcement which will cause a response on every other LocalChat member of the network.
 class StartMulticastScan extends ReduxAction<NearbyDevicesService, NearbyDevicesState> {
   @override
   NearbyDevicesState reduce() {
