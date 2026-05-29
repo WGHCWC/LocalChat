@@ -1,6 +1,6 @@
 {
   "locale": "Galego",
-  "appName": "LocalSend",
+  "appName": "LocalChat",
   "general": {
     "accept": "Aceptar",
     "accepted": "Aceptado",
@@ -108,7 +108,7 @@
       "minimizeToTray": "Minimizar á Bandexa do Sistema/Barra de Menú ao Pechar",
       "launchAtStartup": "Arrancar automáticamente despois do inicio de sesión",
       "launchMinimized": "Arranque automático: Iniciar minimizada",
-      "showInContextMenu": "Amosar LocalSend no menú contextual",
+      "showInContextMenu": "Amosar LocalChat no menú contextual",
       "animations": "Animacións"
     },
     "receive": {
@@ -149,7 +149,7 @@
     },
     "other": {
       "title": "Outros",
-      "support": "Apoia a LocalSend",
+      "support": "Apoia a LocalChat",
       "donate": "Doar",
       "privacyPolicy": "Política de privacidade",
       "termsOfUse": "Condicións de uso"
@@ -186,7 +186,7 @@
     "title": "Interfaces de rede",
     "whitelist": "Lista de permitidos",
     "blacklist": "Lista negra",
-    "info": "Por defecto, LocalSend emprega todas as interfaces de rede dispoñíbeis. Eiquí podes desactivar as redes non desexadas. Tes que reiniciar o servidor para aplicar os cambios."
+    "info": "Por defecto, LocalChat emprega todas as interfaces de rede dispoñíbeis. Eiquí podes desactivar as redes non desexadas. Tes que reiniciar o servidor para aplicar os cambios."
   },
   "receiveHistoryPage": {
     "title": "Historial",
@@ -292,7 +292,7 @@
     },
     "localNetworkUnauthorized": {
       "title": "@:dialogs.noPermission.title",
-      "description": "LocalSend non pode atopar outros dispositivos sen ter permiso para escanear a rede local. Por favor, concede este permiso na configuración.",
+      "description": "LocalChat non pode atopar outros dispositivos sen ter permiso para escanear a rede local. Por favor, concede este permiso na configuración.",
       "gotoSettings": "Axustes"
     },
     "messageInput": {
@@ -328,7 +328,7 @@
       "title": "Modos de envío",
       "single": "Envia ficheiros a un receptor. A selección borrarase unha vez rematada a transferencia de ficheiros.",
       "multiple": "Envia ficheiros a múltiples receptores. A selección non se borrará unha vez rematada a transferencia de ficheiros.",
-      "link": "Os destinatarios que non teñan instalado LocalSend poden descargar os ficheiros seleccionados abrindo a ligazón no seu navegador."
+      "link": "Os destinatarios que non teñan instalado LocalChat poden descargar os ficheiros seleccionados abrindo a ligazón no seu navegador."
     },
     "quickSaveFromFavoritesNotice": {
       "title": "@:general.quickSaveFromFavorites",
@@ -341,7 +341,7 @@
   },
   "webSharePage": {
     "encryption": "@:settingsTab.network.encryption",
-    "encryptionHint": "LocalSend precisa un certificado autoasinado. Tes que aceptalo no teu navegador.",
+    "encryptionHint": "LocalChat precisa un certificado autoasinado. Tes que aceptalo no teu navegador.",
     "title": "Compartir mediante ligazón",
     "stopping": "Parando o servidor…",
     "loading": "Iniciando servidor…",
@@ -383,14 +383,14 @@
   },
   "aboutPage": {
     "description": [
-      "LocalSend é unha aplicación gratuita, de código aberto, que che permite compartir ficheiros e mensaxes de xeito seguro con dispositivos cercanos a través da túa rede local sen necesidade dunha conexión a internet.",
+      "LocalChat é unha aplicación gratuita, de código aberto, que che permite compartir ficheiros e mensaxes de xeito seguro con dispositivos cercanos a través da túa rede local sen necesidade dunha conexión a internet.",
       "Esta aplicación está dispoñíbel en Android, iOS, macOS, Windows e Linux. Podes atopar todas as opcións de descarga na páxina web oficial."
     ],
     "contributors": "Colaboradores",
     "author": "Autor",
     "translators": "Tradutores",
     "packagers": "Empaquetadores",
-    "title": "Acerca de LocalSend"
+    "title": "Acerca de LocalChat"
   },
   "sendPage": {
     "waiting": "Agardando pola resposta…",
@@ -414,7 +414,7 @@
   "tray": {
     "@info": "As directrices de Apple son moi estrictas sobre a expresión \"pechar\".",
     "open": "@:general.open",
-    "close": "Saír de LocalSend",
+    "close": "Saír de LocalChat",
     "closeWindows": "Saír"
   },
   "sanitization": {

@@ -1,7 +1,7 @@
-display_name: LocalSend
+display_name: LocalChat
 packager: Tienisto
 packagerEmail: dev.tien.donam@gmail.com
-url: https://localsend.org
+url: https://github.com/WGHCWC/localsend_chat
 buildArch: x86_64
 license: MIT
 
@@ -16,8 +16,8 @@ keywords:
   - LAN
   - Files
 
-generic_name: An open source cross-platform alternative to AirDrop
-summary: Share files easily with LocalSend
+generic_name: A LAN chat and file transfer app based on LocalSend
+summary: Share files and chat locally with LocalChat
 group: Applications/Utilities
 
 categories:

@@ -1,1 +1,1 @@
-Please ignore this folder, which is just glue to build Rust with Flutter.
+This folder contains the glue used to build the LocalChat Rust code with Flutter.

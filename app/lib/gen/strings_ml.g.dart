@@ -42,7 +42,7 @@ class TranslationsMl extends Translations {
   @override
   late final _TranslationsGeneralMl general = _TranslationsGeneralMl._(_root);
   @override
-  String get appName => 'ലോക്കൽസെൻഡ്‌';
+  String get appName => 'LocalChat';
   @override
   String get locale => 'മലയാളം';
   @override

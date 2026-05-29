@@ -42,7 +42,7 @@ class TranslationsMs extends Translations {
   @override
   String get locale => 'Bahasa Inggeris';
   @override
-  String get appName => 'LocalSend';
+  String get appName => 'LocalChat';
   @override
   late final _TranslationsGeneralMs general = _TranslationsGeneralMs._(_root);
   @override
@@ -352,7 +352,7 @@ class _TranslationsReceiveOptionsPageMs extends TranslationsReceiveOptionsPageEn
   @override
   String get destination => _root.settingsTab.receive.destination;
   @override
-  String get appDirectory => '(folder LocalSend)';
+  String get appDirectory => '(folder LocalChat)';
   @override
   String get saveToGallery => _root.settingsTab.receive.saveToGallery;
   @override
@@ -429,7 +429,7 @@ class _TranslationsWebSharePageMs extends TranslationsWebSharePageEn {
   @override
   String pendingRequests({required Object n}) => 'Permintaan yang masih belum selesai: ${n}';
   @override
-  String get encryptionHint => 'LocalSend menggunakan sijil yang ditandatangani sendiri. Anda perlu menerimanya di pelayar anda.';
+  String get encryptionHint => 'LocalChat menggunakan sijil yang ditandatangani sendiri. Anda perlu menerimanya di pelayar anda.';
 }
 
 // Path: aboutPage
@@ -440,10 +440,10 @@ class _TranslationsAboutPageMs extends TranslationsAboutPageEn {
 
   // Translations
   @override
-  String get title => 'Tentang LocalSend';
+  String get title => 'Tentang LocalChat';
   @override
   List<String> get description => [
-    'LocalSend adalah aplikasi percuma dan sumber terbuka yang membolehkan anda berkongsi fail dan mesej secara selamat dan terjamin dengan peranti berdekatan yang berada dalam rangkaian tempatan anda tanpa memerlukan sebarang sambungan internet.',
+    'LocalChat adalah aplikasi percuma dan sumber terbuka yang membolehkan anda berkongsi fail dan mesej secara selamat dan terjamin dengan peranti berdekatan yang berada dalam rangkaian tempatan anda tanpa memerlukan sebarang sambungan internet.',
     'Aplikasi ini tersedia di Android, iOS, macOS, Windows dan Linux. Anda boleh mencari semua pilihan untuk memuat turun di laman web rasmi.',
   ];
   @override
@@ -467,7 +467,7 @@ class _TranslationsDonationPageMs extends TranslationsDonationPageEn {
   String get title => 'Derma';
   @override
   String get info =>
-      'LocalSend adalah percuma, sumber terbuka dan tanpa iklan. Jika anda menyukai aplikasi ini, anda boleh menyokong pembangunannya dengan derma.';
+      'LocalChat adalah percuma, sumber terbuka dan tanpa iklan. Jika anda menyukai aplikasi ini, anda boleh menyokong pembangunannya dengan derma.';
   @override
   String donate({required Object amount}) => 'Derma ${amount}';
   @override
@@ -651,7 +651,7 @@ class _TranslationsTrayMs extends TranslationsTrayEn {
   @override
   String get open => _root.general.open;
   @override
-  String get close => 'Keluar LocalSend';
+  String get close => 'Keluar LocalChat';
   @override
   String get closeWindows => 'Keluar';
 }
@@ -756,7 +756,7 @@ class _TranslationsNetworkInterfacesPageMs extends TranslationsNetworkInterfaces
   // Translations
   @override
   String get info =>
-      'Secara lalai, LocalSend menggunakan semua antara muka rangkaian tersedia. Anda boleh memulaukan rangkaian yang tidak diingini. Anda perlu mula semula pelayan untuk mengenakan perubahan.';
+      'Secara lalai, LocalChat menggunakan semua antara muka rangkaian tersedia. Anda boleh memulaukan rangkaian yang tidak diingini. Anda perlu mula semula pelayan untuk mengenakan perubahan.';
   @override
   String get title => 'Antara Muka Rangkaian';
   @override
@@ -878,7 +878,7 @@ class _TranslationsSettingsTabGeneralMs extends TranslationsSettingsTabGeneralEn
   @override
   String get launchMinimized => 'Mula automatik: Mula tersembunyi';
   @override
-  String get showInContextMenu => 'Tunjukkan LocalSend dalam menu konteks';
+  String get showInContextMenu => 'Tunjukkan LocalChat dalam menu konteks';
   @override
   String get animations => 'Animasi';
   @override
@@ -978,7 +978,7 @@ class _TranslationsSettingsTabOtherMs extends TranslationsSettingsTabOtherEn {
   @override
   String get title => 'Lain-lain';
   @override
-  String get support => 'Sokong LocalSend';
+  String get support => 'Sokong LocalChat';
   @override
   String get donate => 'Derma';
   @override
@@ -1253,7 +1253,7 @@ class _TranslationsDialogsLocalNetworkUnauthorizedMs extends TranslationsDialogs
   String get title => _root.dialogs.noPermission.title;
   @override
   String get description =>
-      'LocalSend tidak dapat mencari peranti lain tanpa mempunyai kebenaran untuk mengimbas rangkaian tempatan. Sila berikan kebenaran ini dalam tetapan.';
+      'LocalChat tidak dapat mencari peranti lain tanpa mempunyai kebenaran untuk mengimbas rangkaian tempatan. Sila berikan kebenaran ini dalam tetapan.';
   @override
   String get gotoSettings => 'Tetapan';
 }
@@ -1399,7 +1399,7 @@ class _TranslationsDialogsSendModeHelpMs extends TranslationsDialogsSendModeHelp
   String get multiple => 'Menghantar fail kepada beberapa penerima. Pilihan tidak akan dibersihkan.';
   @override
   String get link =>
-      'Penerima yang tidak mempunyai LocalSend dipasang boleh memuat turun fail yang dipilih dengan membuka pautan dalam pelayar mereka.';
+      'Penerima yang tidak mempunyai LocalChat dipasang boleh memuat turun fail yang dipilih dengan membuka pautan dalam pelayar mereka.';
 }
 
 // Path: dialogs.zoom

@@ -1,3 +1,5 @@
-# LocalSend Signaling Server
+# LocalChat Signaling Server
 
-A signaling server for LocalSend. Using Rust and WebSockets.
+A Rust/WebSocket signaling server used by LocalChat WebRTC flows.
+
+This server code is based on the original LocalSend signaling server implementation.

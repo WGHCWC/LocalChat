@@ -1,6 +1,6 @@
 {
   "locale": "Português (Portugal)",
-  "appName": "LocalSend",
+  "appName": "LocalChat",
   "general": {
     "accept": "Aceitar",
     "accepted": "Aceito",
@@ -109,7 +109,7 @@
       "launchMinimized": "Início automático: Abrir minimizado",
       "animations": "Animações",
       "saveWindowPlacementWindows": "Gravar posição da janela ao sair",
-      "showInContextMenu": "Mostrar LocalSend no menu de contexto"
+      "showInContextMenu": "Mostrar LocalChat no menu de contexto"
     },
     "receive": {
       "title": "Recepção",
@@ -149,7 +149,7 @@
     },
     "other": {
       "title": "Outros",
-      "support": "Suporte o LocalSend",
+      "support": "Suporte o LocalChat",
       "donate": "Doar",
       "privacyPolicy": "Política de Privacidade",
       "termsOfUse": "Termos de Utilização"
@@ -208,7 +208,7 @@
   "receiveOptionsPage": {
     "title": "Opções",
     "destination": "@:settingsTab.receive.destination",
-    "appDirectory": "(pasta LocalSend)",
+    "appDirectory": "(pasta LocalChat)",
     "saveToGallery": "@:settingsTab.receive.saveToGallery",
     "saveToGalleryOff": "Opção desligada automaticamente pois uma pasta está a ser transferida."
   },
@@ -255,15 +255,15 @@
     "noRequests": "Nenhum pedido ainda.",
     "encryption": "@:settingsTab.network.encryption",
     "autoAccept": "Aceitar pedidos automaticamente",
-    "encryptionHint": "O LocalSend utiliza um certificado assinado automaticamente. Precisa de aceitá-lo no navegador.",
+    "encryptionHint": "O LocalChat utiliza um certificado assinado automaticamente. Precisa de aceitá-lo no navegador.",
     "pendingRequests": "Pedidos pendentes: {n}",
     "requirePin": "Solicitar PIN",
     "pinHint": "O PIN é \"{pin}\""
   },
   "aboutPage": {
-    "title": "Acerca do LocalSend",
+    "title": "Acerca do LocalChat",
     "description": [
-      "O LocalSend é uma aplicação gratuita e de código aberto que permite partilhar ficheiros e mensagens de forma segura com dispositivos próximos através da sua rede local, sem a necessidade de uma ligação à Internet.",
+      "O LocalChat é uma aplicação gratuita e de código aberto que permite partilhar ficheiros e mensagens de forma segura com dispositivos próximos através da sua rede local, sem a necessidade de uma ligação à Internet.",
       "Esta aplicação está disponível para Android, iOS, macOS, Windows e Linux. Pode encontrar todas as opções para descarregar na página oficial."
     ],
     "author": "Autor",
@@ -273,7 +273,7 @@
   },
   "donationPage": {
     "title": "Doar",
-    "info": "O LocalSend é um software gratuito, de código aberto e sem qualquer anúncio. Se gosta da aplicação, considere apoiar o desenvolvimento com um donativo.",
+    "info": "O LocalChat é um software gratuito, de código aberto e sem qualquer anúncio. Se gosta da aplicação, considere apoiar o desenvolvimento com um donativo.",
     "donate": "Doar {amount}",
     "thanks": "Muito obrigado!",
     "restore": "Restaurar compra"
@@ -418,7 +418,7 @@
     },
     "localNetworkUnauthorized": {
       "title": "@:dialogs.noPermission.title",
-      "description": "O LocalSend não consegue encontrar outros dispositivos sem ter a permissão para analisar a rede local. Conceda esta permissão nas definições.",
+      "description": "O LocalChat não consegue encontrar outros dispositivos sem ter a permissão para analisar a rede local. Conceda esta permissão nas definições.",
       "gotoSettings": "Definições"
     },
     "messageInput": {
@@ -456,7 +456,7 @@
       "title": "Modos de envio",
       "single": "Envia ficheiros para um destinatário. A seleção será apagada após a conclusão da transferência dos ficheiros.",
       "multiple": "Envia ficheiros para vários destinatários. A seleção não será apagada.",
-      "link": "Os destinatários que não têm o LocalSend instalado podem descarregar os ficheiros selecionados abrindo o link fornecido no navegador."
+      "link": "Os destinatários que não têm o LocalChat instalado podem descarregar os ficheiros selecionados abrindo o link fornecido no navegador."
     },
     "zoom": {
       "title": "URL"
@@ -484,7 +484,7 @@
   "tray": {
     "@info": "Apple Guidelines are very strict about the 'close' wording.",
     "open": "@:general.open",
-    "close": "Fechar o LocalSend",
+    "close": "Fechar o LocalChat",
     "closeWindows": "Sair"
   },
   "web": {
@@ -530,7 +530,7 @@
   },
   "networkInterfacesPage": {
     "title": "Interfaces de rede",
-    "info": "Por padrão, o LocalSend utiliza todas as interfaces de rede disponíveis. Pode excluir as redes indesejadas aqui. É necessário reiniciar o servidor para aplicar as alterações.",
+    "info": "Por padrão, o LocalChat utiliza todas as interfaces de rede disponíveis. Pode excluir as redes indesejadas aqui. É necessário reiniciar o servidor para aplicar as alterações.",
     "preview": "Anterior",
     "whitelist": "Lista branca",
     "blacklist": "Lista negra"

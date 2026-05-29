@@ -42,7 +42,7 @@ class TranslationsZhHk extends Translations {
   @override
   String get locale => '繁體中文 (香港)';
   @override
-  String get appName => 'LocalSend';
+  String get appName => 'LocalChat';
   @override
   late final _TranslationsGeneralZhHk general = _TranslationsGeneralZhHk._(_root);
   @override
@@ -350,7 +350,7 @@ class _TranslationsReceiveOptionsPageZhHk extends TranslationsReceiveOptionsPage
   @override
   String get destination => _root.settingsTab.receive.destination;
   @override
-  String get appDirectory => '（LocalSend 資料夾）';
+  String get appDirectory => '（LocalChat 資料夾）';
   @override
   String get saveToGallery => _root.settingsTab.receive.saveToGallery;
   @override
@@ -425,7 +425,7 @@ class _TranslationsWebSharePageZhHk extends TranslationsWebSharePageEn {
   @override
   String pinHint({required Object pin}) => '密碼為「${pin}」';
   @override
-  String get encryptionHint => 'LocalSend 用嘅係自我簽署憑證。麻煩你喺瀏覽器度允許咗佢。';
+  String get encryptionHint => 'LocalChat 用嘅係自我簽署憑證。麻煩你喺瀏覽器度允許咗佢。';
   @override
   String pendingRequests({required Object n}) => '仲有 ${n} 個請求未處理';
 }
@@ -438,10 +438,10 @@ class _TranslationsAboutPageZhHk extends TranslationsAboutPageEn {
 
   // Translations
   @override
-  String get title => '關於 LocalSend';
+  String get title => '關於 LocalChat';
   @override
   List<String> get description => [
-    'LocalSend 係一款免費嘅開源應用程式，佢可以透過區域網路幫你安全噉將檔案同訊息分享畀附近嘅裝置，全程無需互聯網連線。',
+    'LocalChat 係一款免費嘅開源應用程式，佢可以透過區域網路幫你安全噉將檔案同訊息分享畀附近嘅裝置，全程無需互聯網連線。',
     '呢個 app 喺 Android、iOS、macOS、Windows 同 Linux 都用得㗎。你可以喺我哋嘅網站揾到呢個 app 所有平台嘅版本同其他下載方式。',
   ];
   @override
@@ -464,7 +464,7 @@ class _TranslationsDonationPageZhHk extends TranslationsDonationPageEn {
   @override
   String get title => _root.settingsTab.other.donate;
   @override
-  String get info => 'LocalSend 唔單只免費、開源，仲係冇廣告添㗎！如果你鍾意呢個 app，不妨捐款贊助我哋開發.';
+  String get info => 'LocalChat 唔單只免費、開源，仲係冇廣告添㗎！如果你鍾意呢個 app，不妨捐款贊助我哋開發.';
   @override
   String donate({required Object amount}) => '捐 ${amount}';
   @override
@@ -567,7 +567,7 @@ class _TranslationsTrayZhHk extends TranslationsTrayEn {
   @override
   String get open => _root.general.open;
   @override
-  String get close => '退出 LocalSend';
+  String get close => '退出 LocalChat';
   @override
   String get closeWindows => '離開';
 }
@@ -670,7 +670,7 @@ class _TranslationsNetworkInterfacesPageZhHk extends TranslationsNetworkInterfac
 
   // Translations
   @override
-  String get info => 'LocalSend 預設使用所有可用的網路介面。您可以在這裡排除不需要的網路。您需要重新啟動伺服器才能套用變更。';
+  String get info => 'LocalChat 預設使用所有可用的網路介面。您可以在這裡排除不需要的網路。您需要重新啟動伺服器才能套用變更。';
   @override
   String get title => '網路介面';
   @override
@@ -794,7 +794,7 @@ class _TranslationsSettingsTabGeneralZhHk extends TranslationsSettingsTabGeneral
   @override
   String get launchMinimized => '自動啟動成通知圖示';
   @override
-  String get showInContextMenu => '喺檔案功能表嘅「傳送到」項目顯示 LocalSend';
+  String get showInContextMenu => '喺檔案功能表嘅「傳送到」項目顯示 LocalChat';
   @override
   String get animations => '動畫';
 }
@@ -890,7 +890,7 @@ class _TranslationsSettingsTabOtherZhHk extends TranslationsSettingsTabOtherEn {
   @override
   String get title => '其他';
   @override
-  String get support => '支援 LocalSend';
+  String get support => '支援 LocalChat';
   @override
   String get donate => '捐款';
   @override
@@ -1174,7 +1174,7 @@ class _TranslationsDialogsLocalNetworkUnauthorizedZhHk extends TranslationsDialo
   @override
   String get title => _root.dialogs.noPermission.title;
   @override
-  String get description => '喺冇權掃描區域網路嘅情況下 LocalSend 唔會偵測到其他裝置。麻煩你喺系統設定開返呢個權限。';
+  String get description => '喺冇權掃描區域網路嘅情況下 LocalChat 唔會偵測到其他裝置。麻煩你喺系統設定開返呢個權限。';
   @override
   String get gotoSettings => '開啟系統設定';
 }
@@ -1318,7 +1318,7 @@ class _TranslationsDialogsSendModeHelpZhHk extends TranslationsDialogsSendModeHe
   @override
   String get multiple => '一次過 send 畀多部裝置，揀選項目會一路保留。';
   @override
-  String get link => '冇裝 LocalSend 嘅裝置可以透過條 link 嚟 download 返揀選嘅項目。';
+  String get link => '冇裝 LocalChat 嘅裝置可以透過條 link 嚟 download 返揀選嘅項目。';
 }
 
 // Path: dialogs.zoom

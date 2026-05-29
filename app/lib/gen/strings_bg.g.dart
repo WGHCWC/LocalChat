@@ -42,7 +42,7 @@ class TranslationsBg extends Translations {
   @override
   String get locale => 'Български';
   @override
-  String get appName => 'LocalSend';
+  String get appName => 'LocalChat';
   @override
   late final _TranslationsGeneralBg general = _TranslationsGeneralBg._(_root);
   @override
@@ -350,7 +350,7 @@ class _TranslationsReceiveOptionsPageBg extends TranslationsReceiveOptionsPageEn
   @override
   String get destination => _root.settingsTab.receive.destination;
   @override
-  String get appDirectory => '(папка на LocalSend)';
+  String get appDirectory => '(папка на LocalChat)';
   @override
   String get saveToGallery => _root.settingsTab.receive.saveToGallery;
   @override
@@ -427,7 +427,7 @@ class _TranslationsWebSharePageBg extends TranslationsWebSharePageEn {
   @override
   String pinHint({required Object pin}) => 'ПИН кодът е „${pin}“';
   @override
-  String get encryptionHint => 'LocalSend използва самоподписан сертификат. Трябва да го приемете във вашия браузър.';
+  String get encryptionHint => 'LocalChat използва самоподписан сертификат. Трябва да го приемете във вашия браузър.';
   @override
   String pendingRequests({required Object n}) => 'Чакащи заявки: ${n}';
 }
@@ -440,10 +440,10 @@ class _TranslationsAboutPageBg extends TranslationsAboutPageEn {
 
   // Translations
   @override
-  String get title => 'Относно LocalSend';
+  String get title => 'Относно LocalChat';
   @override
   List<String> get description => [
-    'LocalSend е безплатно приложение с отворен код, което ви позволява сигурно да споделяте файлове и съобщения с устройства наблизо през вашата локална мрежа, без да се нуждаете от интернет връзка.',
+    'LocalChat е безплатно приложение с отворен код, което ви позволява сигурно да споделяте файлове и съобщения с устройства наблизо през вашата локална мрежа, без да се нуждаете от интернет връзка.',
     'Това приложение е достъпно за Android, iOS, macOS, Windows и Linux. Можете да намерите всички опции за изтегляне на официалната домашна страница.',
   ];
   @override
@@ -467,7 +467,7 @@ class _TranslationsDonationPageBg extends TranslationsDonationPageEn {
   String get title => 'Дарение';
   @override
   String get info =>
-      'LocalSend е безплатен, с отворен код и без никакви реклами. Ако харесвате приложението, можете да подкрепите разработката с дарение.';
+      'LocalChat е безплатен, с отворен код и без никакви реклами. Ако харесвате приложението, можете да подкрепите разработката с дарение.';
   @override
   String donate({required Object amount}) => 'Дарение ${amount}';
   @override
@@ -571,7 +571,7 @@ class _TranslationsTrayBg extends TranslationsTrayEn {
   @override
   String get open => _root.general.open;
   @override
-  String get close => 'Излезте от LocalSend';
+  String get close => 'Излезте от LocalChat';
   @override
   String get closeWindows => 'Изход';
 }
@@ -684,7 +684,7 @@ class _TranslationsNetworkInterfacesPageBg extends TranslationsNetworkInterfaces
   String get title => 'Мрежови интерфейси';
   @override
   String get info =>
-      'По подразбиране, LocalSend използва всички налични мрежови интерфейси. Тук можете да изключите нежелани мрежи. Трябва да рестартирате сървъра, за да приложите промените.';
+      'По подразбиране, LocalChat използва всички налични мрежови интерфейси. Тук можете да изключите нежелани мрежи. Трябва да рестартирате сървъра, за да приложите промените.';
 }
 
 // Path: receiveTab.infoBox
@@ -800,7 +800,7 @@ class _TranslationsSettingsTabGeneralBg extends TranslationsSettingsTabGeneralEn
   @override
   String get launchMinimized => 'Автоматично стартиране: Стартирай скрито';
   @override
-  String get showInContextMenu => 'Покажи LocalSend в контекстното меню';
+  String get showInContextMenu => 'Покажи LocalChat в контекстното меню';
   @override
   String get animations => 'Анимации';
 }
@@ -898,7 +898,7 @@ class _TranslationsSettingsTabOtherBg extends TranslationsSettingsTabOtherEn {
   @override
   String get title => 'Други';
   @override
-  String get support => 'Поддръжка на LocalSend';
+  String get support => 'Поддръжка на LocalChat';
   @override
   String get donate => 'Дарение';
   @override
@@ -1208,7 +1208,7 @@ class _TranslationsDialogsLocalNetworkUnauthorizedBg extends TranslationsDialogs
   String get title => _root.dialogs.noPermission.title;
   @override
   String get description =>
-      'LocalSend не може да намери други устройства без разрешение за сканиране на локалната мрежа. Моля, предоставете това разрешение в настройките.';
+      'LocalChat не може да намери други устройства без разрешение за сканиране на локалната мрежа. Моля, предоставете това разрешение в настройките.';
   @override
   String get gotoSettings => 'Настройки';
 }
@@ -1352,7 +1352,7 @@ class _TranslationsDialogsSendModeHelpBg extends TranslationsDialogsSendModeHelp
   @override
   String get multiple => 'Изпраща файлове до множество получатели. Изборът няма да бъде изчистен след приключване на прехвърлянето на файлове.';
   @override
-  String get link => 'Получателите, които нямат инсталиран LocalSend, могат да изтеглят избраните файлове, като отворят връзката в своя браузър.';
+  String get link => 'Получателите, които нямат инсталиран LocalChat, могат да изтеглят избраните файлове, като отворят връзката в своя браузър.';
 }
 
 // Path: dialogs.zoom

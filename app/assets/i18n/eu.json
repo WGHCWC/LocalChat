@@ -1,6 +1,6 @@
 {
   "locale": "Euskara",
-  "appName": "LocalSend",
+  "appName": "LocalChat",
   "general": {
     "accept": "Onartu",
     "accepted": "Onartuta",
@@ -109,7 +109,7 @@
       "launchMinimized": "Hasieratze automatikoa: hasi txikituta",
       "animations": "Animazioak",
       "saveWindowPlacementWindows": "Irteeran leihoaren kokapena gorde",
-      "showInContextMenu": "Erakutsi LocalSend testuinguru menuan"
+      "showInContextMenu": "Erakutsi LocalChat testuinguru menuan"
     },
     "receive": {
       "title": "Eskuratu",
@@ -149,7 +149,7 @@
     },
     "other": {
       "title": "Besteak",
-      "support": "LocalSend Lagundu",
+      "support": "LocalChat Lagundu",
       "donate": "Dohaintza egin",
       "privacyPolicy": "Pribatutasun politika",
       "termsOfUse": "Erabilera baldintzak"
@@ -243,11 +243,11 @@
     "requests": "Eskerak",
     "noRequests": "Oraindik ez dago eskaerarik.",
     "encryption": "@:settingsTab.network.encryption",
-    "encryptionHint": "LocalSend-ek autosinatutako zertifikatuak erabiltzen ditu. Nabigatzailean onartu behar duzu",
+    "encryptionHint": "LocalChat-ek autosinatutako zertifikatuak erabiltzen ditu. Nabigatzailean onartu behar duzu",
     "pendingRequests": "Eskerak: {n}"
   },
   "aboutPage": {
-    "title": "LocalSend buruz"
+    "title": "LocalChat buruz"
   },
   "changelogPage": {
     "title": "Aldaketak"
@@ -312,7 +312,7 @@
     },
     "localNetworkUnauthorized": {
       "title": "@:dialogs.noPermission.title",
-      "description": "Sare lokala eskaneatzeko baimenik gabe, LocalSend-ek ezin ditu inguruko gailuak aurkitu. Mesedez, onartu baimen hau ezarpenetan.",
+      "description": "Sare lokala eskaneatzeko baimenik gabe, LocalChat-ek ezin ditu inguruko gailuak aurkitu. Mesedez, onartu baimen hau ezarpenetan.",
       "gotoSettings": "Ezarpenak"
     },
     "messageInput": {
@@ -350,13 +350,13 @@
       "title": "Bidalketa moduak",
       "single": "Bidali fitxategiak hartzaile bakar bati. Bidalketa bukatutakoan aukeraketa garbituko da.",
       "multiple": "Bidali fitxategiak hartzaile anitzeri. Aukeraketa ez da garbituko.",
-      "link": "LocalSend instalatuta ez duten hartzaileak fitxategiak eskuratu ahali zango dituzte lotura nabigatzailean zabalduz."
+      "link": "LocalChat instalatuta ez duten hartzaileak fitxategiak eskuratu ahali zango dituzte lotura nabigatzailean zabalduz."
     }
   },
   "tray": {
     "@info": "Apple Guidelines are very strict about the 'close' wording.",
     "open": "@:general.open",
-    "close": "Itxi LocalSend"
+    "close": "Itxi LocalChat"
   },
   "web": {
     "waiting": "@:sendPage.waiting",

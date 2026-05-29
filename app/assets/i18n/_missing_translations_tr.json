@@ -14,7 +14,7 @@
     }
   },
   "networkInterfacesPage": {
-    "info": "By default, LocalSend uses all available network interfaces. You can exclude unwanted networks here. You need to restart the server to apply the changes."
+    "info": "By default, LocalChat uses all available network interfaces. You can exclude unwanted networks here. You need to restart the server to apply the changes."
   },
   "dialogs": {
     "quickSaveFromFavoritesNotice": {

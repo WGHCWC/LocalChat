@@ -42,7 +42,7 @@ class TranslationsNe extends Translations {
   @override
   String get locale => 'नेपाली';
   @override
-  String get appName => 'LocalSend';
+  String get appName => 'LocalChat';
   @override
   late final _TranslationsGeneralNe general = _TranslationsGeneralNe._(_root);
   @override
@@ -352,7 +352,7 @@ class _TranslationsReceiveOptionsPageNe extends TranslationsReceiveOptionsPageEn
   @override
   String get destination => _root.settingsTab.receive.destination;
   @override
-  String get appDirectory => '(LocalSend फोल्डर)';
+  String get appDirectory => '(LocalChat फोल्डर)';
   @override
   String get saveToGallery => _root.settingsTab.receive.saveToGallery;
   @override
@@ -421,7 +421,7 @@ class _TranslationsWebSharePageNe extends TranslationsWebSharePageEn {
   @override
   String get encryption => _root.settingsTab.network.encryption;
   @override
-  String get encryptionHint => 'LocalSend एक स्वयंसिग्ध प्रमाणपत्र प्रयोग गर्दछ। तपाईंले ब्राउजरमा यसलाई स्वीकार्नु पर्दछ।';
+  String get encryptionHint => 'LocalChat एक स्वयंसिग्ध प्रमाणपत्र प्रयोग गर्दछ। तपाईंले ब्राउजरमा यसलाई स्वीकार्नु पर्दछ।';
   @override
   String pendingRequests({required Object n}) => 'लंबित अनुरोध: ${n}';
   @override
@@ -440,10 +440,10 @@ class _TranslationsAboutPageNe extends TranslationsAboutPageEn {
 
   // Translations
   @override
-  String get title => 'LocalSend को बारेमा';
+  String get title => 'LocalChat को बारेमा';
   @override
   List<String> get description => [
-    'LocalSend एउटा नि:शुल्क, खुला स्रोत एप हो जसले तपाईंलाई इन्टरनेट जडानको आवश्यकता बिना नै आफ्नो स्थानीय नेटवर्कमा नजिकैका उपकरणहरूसँग फाइलहरू र सन्देशहरू सुरक्षित रूपमा साझेदारी गर्न अनुमति दिन्छ।',
+    'LocalChat एउटा नि:शुल्क, खुला स्रोत एप हो जसले तपाईंलाई इन्टरनेट जडानको आवश्यकता बिना नै आफ्नो स्थानीय नेटवर्कमा नजिकैका उपकरणहरूसँग फाइलहरू र सन्देशहरू सुरक्षित रूपमा साझेदारी गर्न अनुमति दिन्छ।',
     'यो एप एन्ड्रोइड, आईओएस, म्याकओएस, विन्डोज र लिनक्समा उपलब्ध छ। तपाईंले आधिकारिक होमपेजमा सबै डाउनलोड विकल्पहरू फेला पार्न सक्नुहुन्छ।',
   ];
   @override
@@ -621,7 +621,7 @@ class _TranslationsTrayNe extends TranslationsTrayEn {
   @override
   String get open => _root.general.open;
   @override
-  String get close => 'LocalSend बन्द गर्नुहोस्';
+  String get close => 'LocalChat बन्द गर्नुहोस्';
   @override
   String get closeWindows => 'बाहिर निस्कनुहोस्';
 }
@@ -734,7 +734,7 @@ class _TranslationsNetworkInterfacesPageNe extends TranslationsNetworkInterfaces
   String get whitelist => 'श्वेतसूची';
   @override
   String get info =>
-      'पूर्वनिर्धारित रूपमा, LocalSend ले सबै उपलब्ध नेटवर्क इन्टरफेसहरू प्रयोग गर्दछ। तपाईं यहाँ अनावश्यक नेटवर्कहरू बहिष्कार गर्न सक्नुहुन्छ। परिवर्तनहरू लागू गर्न तपाईंले सर्भर पुन: सुरु गर्न आवश्यक छ।';
+      'पूर्वनिर्धारित रूपमा, LocalChat ले सबै उपलब्ध नेटवर्क इन्टरफेसहरू प्रयोग गर्दछ। तपाईं यहाँ अनावश्यक नेटवर्कहरू बहिष्कार गर्न सक्नुहुन्छ। परिवर्तनहरू लागू गर्न तपाईंले सर्भर पुन: सुरु गर्न आवश्यक छ।';
 }
 
 // Path: donationPage
@@ -748,7 +748,7 @@ class _TranslationsDonationPageNe extends TranslationsDonationPageEn {
   String get title => 'दान गर्नुहोस्';
   @override
   String get info =>
-      'LocalSend नि:शुल्क, खुला स्रोत र कुनै पनि विज्ञापन बिनाको एप हो। यदि तपाईंलाई एप मनपर्छ भने, तपाईंले दान दिएर विकासलाई समर्थन गर्न सक्नुहुन्छ।';
+      'LocalChat नि:शुल्क, खुला स्रोत र कुनै पनि विज्ञापन बिनाको एप हो। यदि तपाईंलाई एप मनपर्छ भने, तपाईंले दान दिएर विकासलाई समर्थन गर्न सक्नुहुन्छ।';
   @override
   String donate({required Object amount}) => '${amount} दान गर्नुहोस्';
   @override
@@ -885,7 +885,7 @@ class _TranslationsSettingsTabGeneralNe extends TranslationsSettingsTabGeneralEn
   @override
   String get saveWindowPlacementWindows => 'बाहिर निस्किएपछि विन्डोको स्थिति सुरक्षित गर्नुहोस्';
   @override
-  String get showInContextMenu => 'कन्टेक्स्ट मेनुमा LocalSend देखाउनुहोस्';
+  String get showInContextMenu => 'कन्टेक्स्ट मेनुमा LocalChat देखाउनुहोस्';
 }
 
 // Path: settingsTab.receive
@@ -985,7 +985,7 @@ class _TranslationsSettingsTabOtherNe extends TranslationsSettingsTabOtherEn {
   @override
   String get termsOfUse => 'प्रयोगका सर्तहरू';
   @override
-  String get support => 'LocalSend लाई समर्थन गर्नुहोस्';
+  String get support => 'LocalChat लाई समर्थन गर्नुहोस्';
 }
 
 // Path: troubleshootPage.firewall
@@ -1193,7 +1193,7 @@ class _TranslationsDialogsLocalNetworkUnauthorizedNe extends TranslationsDialogs
   String get title => _root.dialogs.noPermission.title;
   @override
   String get description =>
-      'LocalSend ले स्थानीय नेटवर्क स्क्यान गर्ने अनुमति बिना अन्य उपकरणहरू फेला पार्न सक्दैन। कृपया सेटिङहरूमा यो अनुमति दिनुहोस्।';
+      'LocalChat ले स्थानीय नेटवर्क स्क्यान गर्ने अनुमति बिना अन्य उपकरणहरू फेला पार्न सक्दैन। कृपया सेटिङहरूमा यो अनुमति दिनुहोस्।';
   @override
   String get gotoSettings => 'सेटिंग्स';
 }
@@ -1310,7 +1310,7 @@ class _TranslationsDialogsSendModeHelpNe extends TranslationsDialogsSendModeHelp
   @override
   String get multiple => 'धेरै प्राप्तकर्ताहरूलाई फाइलहरू पठाउँछ। फाइलहरू स्थानान्तरण समाप्त भएपछि चयन खाली गरिने छैन।';
   @override
-  String get link => 'LocalSend इन्स्टल नगरेका प्राप्तकर्ताहरूले आफ्नो ब्राउजरमा लिङ्क खोलेर चयन गरिएका फाइलहरू डाउनलोड गर्न सक्छन्।';
+  String get link => 'LocalChat इन्स्टल नगरेका प्राप्तकर्ताहरूले आफ्नो ब्राउजरमा लिङ्क खोलेर चयन गरिएका फाइलहरू डाउनलोड गर्न सक्छन्।';
 }
 
 // Path: dialogs.openFile

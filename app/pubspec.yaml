@@ -1,6 +1,6 @@
 name: localsend_app
-description: An open source cross-platform alternative to AirDrop
-homepage: https://localsend.org/
+description: A LAN chat and file transfer app based on LocalSend
+homepage: https://github.com/WGHCWC/localsend_chat
 publish_to: "none"
 
 version: 1.17.0+58
